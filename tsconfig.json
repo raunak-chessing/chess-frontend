@@ -15,6 +15,7 @@
     "incremental": true,
     "plugins": [
       {
+        "@tailwindcss/postcss": {},
         "name": "next"
       }
     ],
