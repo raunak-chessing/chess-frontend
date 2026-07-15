@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Socket } from "socket.io-client";
 import { getSocket } from "@/lib/socket-client";
 import type { GameActions } from "./useGameState";
+import { authClient } from "@/lib/auth-client";
 
 interface SocketEventHandlers {
   applyMove: GameActions["applyMove"];
@@ -20,20 +21,50 @@ interface UseGameSocketReturn {
   inQueue: boolean;
   roomCode: string;
   userRating: number;
+  timeControl: string;
+  setTimeControl: (tc: string) => void;
   connected: boolean;
+  selfPlayer: { name: string; rating: number } | null;
+  opponent: { name: string; rating: number } | null;
   setRoomCode: (code: string) => void;
-  setUserRating: (rating: number) => void;
   handleJoinOnlineRoom: () => void;
   handleJoinQueue: () => void;
   handleLeaveQueue: () => void;
 }
 
 export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketReturn {
+  const { data: session } = authClient.useSession();
   const [playerColor, setPlayerColor] = useState<"w" | "b" | null>(null);
   const [joinedRoom, setJoinedRoom] = useState<string>("");
   const [inQueue, setInQueue] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>("");
-  const [userRating, setUserRating] = useState<number>(1200);
+  const [timeControl, setTimeControl] = useState<string>("10|0");
+
+  const getRatingForTimeControl = useCallback((tc: string): number => {
+    if (!session?.user) return 1200;
+    const tcLower = tc.toLowerCase();
+    if (tcLower.includes("day")) {
+      return (session.user as any).ratingDaily ?? 1200;
+    }
+    const parts = tc.split(/[|+]/);
+    if (parts.length === 0) return (session.user as any).ratingRapid ?? 1200;
+    const base = parseFloat(parts[0]);
+    if (isNaN(base)) return (session.user as any).ratingRapid ?? 1200;
+    const inc = parts.length > 1 ? parseFloat(parts[1]) : 0;
+    const total = base * 60 + 40 * (isNaN(inc) ? 0 : inc);
+
+    if (total < 180) {
+      return (session.user as any).ratingBullet ?? 1200;
+    } else if (total < 600) {
+      return (session.user as any).ratingBlitz ?? 1200;
+    } else {
+      return (session.user as any).ratingRapid ?? 1200;
+    }
+  }, [session]);
+
+  const currentRating = getRatingForTimeControl(timeControl);
+  const [selfPlayer, setSelfPlayer] = useState<{ name: string; rating: number } | null>(null);
+  const [opponent, setOpponent] = useState<{ name: string; rating: number } | null>(null);
 
   const socket = getSocket();
   const [connected, setConnected] = useState<boolean>(socket.connected);
@@ -56,10 +87,19 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
       setPlayerColor(data.color);
       setJoinedRoom(data.room);
       setInQueue(false);
+      setSelfPlayer(null);
+      setOpponent(null);
     };
 
-    const onGameStart = () => {
+    const onGameStart = (data: {
+      white: { id: string; name: string; rating: number };
+      black: { id: string; name: string; rating: number };
+    }) => {
       handlers.resetGame();
+      if (data?.white && data?.black) {
+        setSelfPlayer(playerColor === "b" ? data.black : data.white);
+        setOpponent(playerColor === "b" ? data.white : data.black);
+      }
     };
 
     const onOpponentMove = (data: { from: string; to: string; fen: string }) => {
@@ -111,7 +151,7 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
       socket.off("queueJoined", onQueueJoined);
       socket.off("queueLeft", onQueueLeft);
     };
-  }, [socket, handlers]);
+  }, [socket, handlers, playerColor]);
 
   const handleJoinOnlineRoom = useCallback(() => {
     if (socket && roomCode.trim() !== "") {
@@ -121,9 +161,9 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
 
   const handleJoinQueue = useCallback(() => {
     if (socket) {
-      socket.emit("joinQueue", { rating: Number(userRating) });
+      socket.emit("joinQueue", { timeControl });
     }
-  }, [socket, userRating]);
+  }, [socket, timeControl]);
 
   const handleLeaveQueue = useCallback(() => {
     if (socket) {
@@ -137,10 +177,13 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
     joinedRoom,
     inQueue,
     roomCode,
-    userRating,
+    userRating: currentRating,
+    timeControl,
+    setTimeControl,
     connected,
+    selfPlayer,
+    opponent,
     setRoomCode,
-    setUserRating,
     handleJoinOnlineRoom,
     handleJoinQueue,
     handleLeaveQueue,

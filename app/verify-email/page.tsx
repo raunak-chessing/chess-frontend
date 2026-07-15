@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, Suspense } from "react";
+import { useState, useRef, useEffect, Suspense, KeyboardEvent, ClipboardEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { Spinner } from "@/components/ui/Spinner";
 
 function VerifyEmailForm() {
   const router = useRouter();
@@ -40,13 +41,13 @@ function VerifyEmailForm() {
     }
   };
 
-  const handleKeyDown = (index: number, e: React.KeyboardEvent) => {
+  const handleKeyDown = (index: number, e: KeyboardEvent) => {
     if (e.key === "Backspace" && !otp[index] && index > 0) {
       inputRefs.current[index - 1]?.focus();
     }
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  const handlePaste = (e: ClipboardEvent) => {
     e.preventDefault();
     const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     const newOtp = [...otp];
@@ -112,12 +113,12 @@ function VerifyEmailForm() {
 
   if (!email) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#262421] px-4">
+      <div className="min-h-screen flex items-center justify-center bg-cc-bg-sidebar px-4">
         <div className="text-center">
-          <p className="text-[#a3a3a0] text-sm mb-4">No email address provided.</p>
+          <p className="text-cc-text-secondary text-sm mb-4">No email address provided.</p>
           <a
             href="/signup"
-            className="text-[#81b64c] hover:text-[#6fa33f] font-medium text-sm"
+            className="text-cc-green hover:text-cc-green-hover font-medium text-sm"
           >
             Go to Sign Up
           </a>
@@ -127,30 +128,30 @@ function VerifyEmailForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#262421] px-4">
+    <div className="min-h-screen flex items-center justify-center bg-cc-bg-sidebar px-4">
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-green-600/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-green-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-cc-green/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cc-green/5 rounded-full blur-3xl" />
       </div>
 
       <div className="w-full max-w-[420px] relative z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-[#81b64c] rounded-xl flex items-center justify-center shadow-lg shadow-green-900/30">
+            <div className="w-12 h-12 bg-cc-green rounded-xl flex items-center justify-center shadow-lg shadow-green-900/30">
               <span className="text-2xl text-white font-bold">♔</span>
             </div>
             <h1 className="text-3xl font-bold text-white tracking-tight">
               Chess Arena
             </h1>
           </div>
-          <p className="text-[#a3a3a0] text-sm mt-1">Verify your email address</p>
+          <p className="text-cc-text-secondary text-sm mt-1">Verify your email address</p>
         </div>
 
-        <div className="bg-[#312e2b] rounded-2xl border border-[#3d3a36] shadow-2xl shadow-black/40 p-8">
+        <div className="bg-cc-bg-card rounded-2xl border border-cc-border shadow-2xl shadow-black/40 p-8">
           <div className="text-center mb-6">
-            <div className="w-16 h-16 bg-[#81b64c]/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
+            <div className="w-16 h-16 bg-cc-green/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
               <svg
-                className="w-8 h-8 text-[#81b64c]"
+                className="w-8 h-8 text-cc-green"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -163,7 +164,7 @@ function VerifyEmailForm() {
                 />
               </svg>
             </div>
-            <p className="text-[#b3b3b0] text-sm">
+            <p className="text-cc-text-muted text-sm">
               We sent a 6-digit code to
             </p>
             <p className="text-white font-medium text-sm mt-1">{email}</p>
@@ -200,7 +201,7 @@ function VerifyEmailForm() {
                   onChange={(e) => handleChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   id={`otp-input-${index}`}
-                  className="w-12 h-14 bg-[#262421] border border-[#3d3a36] rounded-xl text-center text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-[#81b64c] focus:border-transparent transition-all duration-200"
+                  className="w-12 h-14 bg-cc-bg-sidebar border border-cc-border rounded-xl text-center text-white text-xl font-bold focus:outline-none focus:ring-2 focus:ring-cc-green focus:border-transparent transition-all duration-200"
                 />
               ))}
             </div>
@@ -209,14 +210,11 @@ function VerifyEmailForm() {
               type="submit"
               disabled={loading}
               id="verify-submit"
-              className="w-full bg-[#81b64c] hover:bg-[#6fa33f] disabled:bg-[#81b64c]/50 text-white font-semibold py-3 rounded-xl transition-all duration-200 text-sm shadow-lg shadow-green-900/20 cursor-pointer disabled:cursor-not-allowed"
+              className="w-full bg-cc-green hover:bg-cc-green-hover disabled:bg-cc-green/50 text-white font-semibold py-3 rounded-xl transition-all duration-200 text-sm shadow-lg shadow-green-900/20 cursor-pointer disabled:cursor-not-allowed"
             >
               {loading ? (
                 <span className="inline-flex items-center gap-2">
-                  <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-                  </svg>
+                  <Spinner size="sm" />
                   Verifying…
                 </span>
               ) : (
@@ -230,7 +228,7 @@ function VerifyEmailForm() {
               onClick={handleResend}
               disabled={resendCooldown > 0 || resendLoading}
               id="verify-resend"
-              className="text-sm text-[#a3a3a0] hover:text-[#81b64c] disabled:text-[#6e6c68] transition-colors cursor-pointer disabled:cursor-not-allowed"
+              className="text-sm text-cc-text-secondary hover:text-cc-green disabled:opacity-50 transition-colors cursor-pointer disabled:cursor-not-allowed"
             >
               {resendLoading
                 ? "Sending…"
@@ -249,8 +247,8 @@ export default function VerifyEmailPage() {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen flex items-center justify-center bg-[#262421]">
-          <div className="animate-spin h-8 w-8 border-2 border-[#81b64c] border-t-transparent rounded-full" />
+        <div className="min-h-screen flex items-center justify-center bg-cc-bg-sidebar">
+          <Spinner />
         </div>
       }
     >

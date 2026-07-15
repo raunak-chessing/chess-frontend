@@ -12,26 +12,21 @@ export default function AuthPageShell({
   footer,
 }: AuthPageShellProps) {
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#262421] px-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-green-600/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-green-500/5 rounded-full blur-3xl" />
-      </div>
-
+    <div className="min-h-screen flex items-center justify-center px-4 bg-[var(--cc-bg-sidebar)]">
       <div className="w-full max-w-[420px] relative z-10">
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-[#81b64c] rounded-xl flex items-center justify-center shadow-lg shadow-green-900/30">
+            <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-[var(--cc-green)] shadow-[0_4px_0_var(--cc-green-dark)]">
               <span className="text-2xl text-white font-bold">♔</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
+            <h1 className="text-3xl font-bold tracking-tight text-[var(--cc-text-primary)]">
               {title}
             </h1>
           </div>
-          <p className="text-[#a3a3a0] text-sm mt-1">{subtitle}</p>
+          <p className="text-sm mt-1 text-[var(--cc-text-secondary)]">{subtitle}</p>
         </div>
 
-        <div className="bg-[#312e2b] rounded-2xl border border-[#3d3a36] shadow-2xl shadow-black/40 p-8">
+        <div className="rounded-2xl border p-8 bg-[var(--cc-bg-card)] border-[var(--cc-border)]">
           {children}
         </div>
 

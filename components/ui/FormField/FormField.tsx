@@ -14,7 +14,7 @@ export default function FormField({
     <div className="flex flex-col gap-1.5">
       <label
         htmlFor={id}
-        className="block text-sm font-medium text-[#b3b3b0]"
+        className="block text-sm font-medium text-cc-text-muted"
       >
         {label}
       </label>
@@ -22,11 +22,14 @@ export default function FormField({
         id={id}
         type={type}
         ref={ref}
-        className={`w-full bg-[#262421] border ${
-          error
-            ? "border-red-500/50 focus:ring-red-500"
-            : "border-[#3d3a36] focus:ring-[#81b64c]"
-        } rounded-xl px-4 py-3 text-white placeholder-[#6e6c68] text-sm focus:outline-none focus:ring-2 focus:border-transparent transition-all duration-200 ${className}`}
+        className={`w-full px-4 py-2.5 rounded-lg border outline-none transition-all shadow-sm
+            bg-[var(--cc-bg-input)] text-[var(--cc-text-primary)]
+            ${
+              error
+                ? "border-red-500/50 focus:border-red-500 focus:ring-1 focus:ring-red-500"
+                : "border-[var(--cc-border)] focus:border-[var(--cc-green)] focus:ring-1 focus:ring-[var(--cc-green)] hover:border-[var(--cc-border-light)]"
+            } ${className}
+          `}
         {...rest}
       />
       {error && (

@@ -5,9 +5,9 @@ import type { ButtonProps } from "./Button.types";
 
 const VARIANT_CLASSES = {
   primary:
-    "bg-[#81b64c] hover:bg-[#6fa33f] disabled:bg-[#81b64c]/50 text-white shadow-lg shadow-green-900/20",
+    "bg-[var(--cc-green)] hover:bg-[var(--cc-green-hover)] text-white shadow-[0_4px_0_var(--cc-green-dark)] active:translate-y-[4px] active:shadow-none border border-transparent",
   secondary:
-    "bg-[#262421] hover:bg-[#2c2a27] border border-[#3d3a36] hover:border-zinc-500 text-white",
+    "bg-[var(--cc-bg-input)] hover:bg-[var(--cc-bg-hover)] border border-[var(--cc-border)] hover:border-[var(--cc-border-light)] text-[var(--cc-text-primary)]",
   ghost:
     "bg-transparent hover:bg-zinc-800/40 border border-transparent text-zinc-300",
 } as const;
@@ -25,8 +25,8 @@ export default function Button({
     <button
       disabled={disabled || loading}
       className={`
-        font-semibold rounded-xl transition-all duration-200 text-sm cursor-pointer
-        disabled:cursor-not-allowed
+        font-bold rounded-xl transition-all duration-200 text-sm cursor-pointer px-4 py-3
+        disabled:cursor-not-allowed disabled:opacity-50
         ${fullWidth ? "w-full" : ""}
         ${VARIANT_CLASSES[variant]}
         ${className}

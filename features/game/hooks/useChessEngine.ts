@@ -10,6 +10,7 @@ interface UseChessEngineParams {
   gameMode: GameMode;
   autoFlip: boolean;
   applyMove: (from: string, to: string) => boolean;
+  botDifficulty?: number;
 }
 
 export function useChessEngine({
@@ -17,6 +18,7 @@ export function useChessEngine({
   fen,
   gameMode,
   applyMove,
+  botDifficulty = 3,
 }: UseChessEngineParams) {
   useEffect(() => {
     if (gameMode !== "computer-black" && gameMode !== "computer-white") return;
@@ -28,6 +30,23 @@ export function useChessEngine({
       (gameMode === "computer-white" && currentTurn === "w");
 
     if (!isAiTurn) return;
+
+    let skillLevel = 12;
+    let depth = 8;
+
+    if (botDifficulty === 1) {
+      skillLevel = 0;
+      depth = 1;
+    } else if (botDifficulty === 2) {
+      skillLevel = 5;
+      depth = 3;
+    } else if (botDifficulty === 3) {
+      skillLevel = 12;
+      depth = 8;
+    } else if (botDifficulty === 4) {
+      skillLevel = 20;
+      depth = 15;
+    }
 
     const worker = new Worker("/stockfish/stockfish-18-lite-single.js");
 
@@ -46,12 +65,13 @@ export function useChessEngine({
     };
 
     worker.postMessage("uci");
+    worker.postMessage(`setoption name Skill Level value ${skillLevel}`);
     worker.postMessage("isready");
     worker.postMessage(`position fen ${fen}`);
-    worker.postMessage("go depth 10");
+    worker.postMessage(`go depth ${depth}`);
 
     return () => {
       worker.terminate();
     };
-  }, [fen, gameMode, game, applyMove]);
+  }, [fen, gameMode, game, applyMove, botDifficulty]);
 }

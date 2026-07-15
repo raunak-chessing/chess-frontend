@@ -1,1 +1,222 @@
 @import "tailwindcss";
+
+:root {
+  --cc-bg-page: #312e2b;
+  --cc-bg-card: #272522;
+  --cc-bg-sidebar: #1e1c1a;
+  --cc-bg-input: #3d3a37;
+  --cc-bg-hover: #3a3733;
+  --cc-green: #81b64c;
+  --cc-green-hover: #6fa33f;
+  --cc-green-dark: #5a9132;
+  --cc-text-primary: #e8e6e3;
+  --cc-text-secondary: #a09e9b;
+  --cc-text-muted: #6b6966;
+  --cc-border: #3d3a37;
+  --cc-border-light: #4d4a47;
+  --cc-accent-gold: #e8a93e;
+  --cc-accent-red: #c33;
+  --cc-accent-blue: #5ba4cf;
+
+  --board-edge-color: #18120e;
+  --board-transition-speed: 0.4s;
+  --board-transition-ease: cubic-bezier(0.25, 0.8, 0.25, 1);
+}
+
+@theme {
+  --color-cc-bg-page: var(--cc-bg-page);
+  --color-cc-bg-card: var(--cc-bg-card);
+  --color-cc-bg-sidebar: var(--cc-bg-sidebar);
+  --color-cc-bg-input: var(--cc-bg-input);
+  --color-cc-bg-hover: var(--cc-bg-hover);
+  --color-cc-green: var(--cc-green);
+  --color-cc-green-hover: var(--cc-green-hover);
+  --color-cc-green-dark: var(--cc-green-dark);
+  --color-cc-text-primary: var(--cc-text-primary);
+  --color-cc-text-secondary: var(--cc-text-secondary);
+  --color-cc-text-muted: var(--cc-text-muted);
+  --color-cc-border: var(--cc-border);
+  --color-cc-border-light: var(--cc-border-light);
+  --color-cc-accent-gold: var(--cc-accent-gold);
+  --color-cc-accent-red: var(--cc-accent-red);
+  --color-cc-accent-blue: var(--cc-accent-blue);
+}
+
+.board-container-responsive {
+  width: min(90vw, calc(100vh - 14rem));
+  height: min(90vw, calc(100vh - 14rem));
+  flex-shrink: 0;
+}
+
+.header-container-responsive {
+  width: 100%;
+}
+@media (min-width: 1024px) {
+  .header-container-responsive {
+    max-width: calc(100vh - 14rem + 20vh) !important; 
+    margin: 0 auto;
+  }
+}
+
+.captured-tray-responsive {
+  width: 100%;
+  height: auto;
+}
+@media (min-width: 1024px) {
+  .captured-tray-responsive {
+    width: 10vh;
+    height: calc(100vh - 14rem) !important;
+    flex-shrink: 0;
+  }
+}
+
+.chess-3d-scene {
+  perspective: 1500px;
+  perspective-origin: 50% 50%;
+  transform-style: preserve-3d;
+}
+
+.board-is-3d .inner-chessboard-grid-container {
+  transform-style: preserve-3d !important;
+  overflow: visible !important;
+}
+
+.board-is-3d [id$="-board"] {
+  transform-style: preserve-3d !important;
+  overflow: visible !important;
+}
+
+.board-is-3d [id*="-square-"] {
+  transform-style: preserve-3d !important;
+  overflow: visible !important;
+}
+
+.board-is-3d [draggable="true"],
+.board-is-3d .react-chessboard-piece,
+.board-is-3d [data-piece] {
+  transform: rotateZ(calc(-1 * var(--board-rot-z, 0deg))) 
+             rotateX(calc(-1 * var(--board-rot-x, 0deg))) 
+             translateY(-22%) translateZ(1.2vw) !important;
+  transform-origin: bottom center !important;
+  transition: transform var(--board-transition-speed) var(--board-transition-ease) !important;
+}
+
+.board-is-2d [draggable="true"],
+.board-is-2d .react-chessboard-piece,
+.board-is-2d [data-piece] {
+  transform: none !important;
+  transition: transform var(--board-transition-speed) var(--board-transition-ease) !important;
+}
+
+.board-is-3d [draggable="true"] svg,
+.board-is-3d .react-chessboard-piece svg,
+.board-is-3d [data-piece] svg {
+  filter: drop-shadow(0px 16px 6px rgba(0, 0, 0, 0.7)) !important;
+}
+
+.board-is-2d [draggable="true"] svg,
+.board-is-2d .react-chessboard-piece svg,
+.board-is-2d [data-piece] svg {
+  filter: drop-shadow(0px 2px 2px rgba(0, 0, 0, 0.35)) !important;
+}
+
+.board-is-3d [style*="transition"] {
+  filter: blur(1.2px) drop-shadow(0px 22px 10px rgba(0, 0, 0, 0.85)) !important;
+  opacity: 0.92 !important;
+}
+
+.board-is-2d [style*="transition"] {
+  filter: blur(1px) drop-shadow(0px 5px 5px rgba(0, 0, 0, 0.45)) !important;
+  opacity: 0.92 !important;
+}
+
+.wood-board-frame {
+  background: linear-gradient(135deg, #3c2f25 0%, #251c16 100%);
+  border: 5px solid var(--board-edge-color);
+  transform-style: preserve-3d;
+  box-shadow: 
+    inset 0 0 25px rgba(0, 0, 0, 0.95), 
+    0 1px 0 var(--board-edge-color),
+    0 2px 0 var(--board-edge-color),
+    0 3px 0 var(--board-edge-color),
+    0 4px 0 var(--board-edge-color),
+    0 5px 0 var(--board-edge-color),
+    0 6px 0 var(--board-edge-color),
+    0 7px 0 var(--board-edge-color),
+    0 8px 0 var(--board-edge-color),
+    0 9px 0 var(--board-edge-color),
+    0 10px 0 var(--board-edge-color),
+    0 11px 0 var(--board-edge-color),
+    0 12px 0 var(--board-edge-color),
+    0 20px 40px rgba(0, 0, 0, 0.9);
+}
+
+[data-piece^="w"] svg path {
+  fill: url(#lightWoodGrad) !important;
+  stroke: #5d4636 !important;
+  stroke-width: 1.5px !important;
+}
+
+[data-piece^="b"] svg path {
+  fill: url(#darkWoodGrad) !important;
+  stroke: var(--board-edge-color) !important;
+  stroke-width: 1.5px !important;
+}
+
+.tray-bevel-shadow {
+  box-shadow: 
+    inset 0 4px 8px rgba(0, 0, 0, 0.75),
+    0 4px 10px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+.plate-metallic {
+  background: linear-gradient(180deg, #dbdbd6 0%, #adada3 100%);
+  border: 1px solid #707068;
+  box-shadow: 
+    inset 0 1px 1px rgba(255, 255, 255, 0.8),
+    0 3px 6px rgba(0, 0, 0, 0.4),
+    0 0 0 1px #707068;
+}
+
+.digital-clock-bg {
+  background: #394446;
+  border: 2px solid #546466;
+  box-shadow: 
+    inset 0 3px 6px rgba(0, 0, 0, 0.6),
+    0 4px 10px rgba(0, 0, 0, 0.5),
+    0 1px 2px rgba(255, 255, 255, 0.08);
+}
+
+.evaluation-bar-responsive {
+  width: 1.5rem;
+  height: 12rem;
+  flex-shrink: 0;
+}
+@media (min-width: 1024px) {
+  .evaluation-bar-responsive {
+    width: 2rem;
+    height: calc(100vh - 14rem) !important;
+  }
+}
+
+.move-history-responsive {
+  width: 100%;
+  height: 12rem;
+}
+@media (min-width: 1024px) {
+  .move-history-responsive {
+    width: 16rem;
+    height: calc(100vh - 14rem) !important;
+  }
+}
+
+/* Fix browser autofill styling */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 30px var(--cc-bg-input) inset !important;
+  -webkit-text-fill-color: var(--cc-text-primary) !important;
+  transition: background-color 5000s ease-in-out 0s;
+}

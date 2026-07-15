@@ -1,6 +1,5 @@
-import { memo } from "react";
+import { memo, useState } from "react";
 import type { GameMode } from "../../types/game.types";
-import { OnlineMatchmaker } from "../OnlineMatchmaker";
 
 interface GameControlsProps {
   gameMode: GameMode;
@@ -9,21 +8,14 @@ interface GameControlsProps {
   hasHistory: boolean;
   joinedRoom: string;
   playerColor: "w" | "b" | null;
-  inQueue: boolean;
-  userRating: number;
-  roomCode: string;
   isGameOver: boolean;
-  onGameModeChange: (mode: GameMode) => void;
+  viewMode: "3d" | "2.5d" | "2d";
+  onViewModeChange: (mode: "3d" | "2.5d" | "2d") => void;
   onAutoFlipToggle: (checked: boolean) => void;
   onFlipBoard: () => void;
   onUndo: () => void;
   onReset: () => void;
   onReturnHome: () => void;
-  onUserRatingChange: (rating: number) => void;
-  onRoomCodeChange: (code: string) => void;
-  onJoinQueue: () => void;
-  onLeaveQueue: () => void;
-  onJoinRoom: () => void;
   onResign: () => void;
 }
 
@@ -32,139 +24,157 @@ const GameControls = memo(function GameControls({
   autoFlip,
   hasHistory,
   joinedRoom,
-  playerColor,
-  inQueue,
-  userRating,
-  roomCode,
   isGameOver,
-  onGameModeChange,
+  viewMode,
+  onViewModeChange,
   onAutoFlipToggle,
   onFlipBoard,
   onUndo,
   onReset,
   onReturnHome,
-  onUserRatingChange,
-  onRoomCodeChange,
-  onJoinQueue,
-  onLeaveQueue,
-  onJoinRoom,
   onResign,
 }: GameControlsProps) {
+  const [showOptionsPopover, setShowOptionsPopover] = useState(false);
+
+    const btnClass = (active: boolean) =>
+      `w-14 h-14 rounded-xl font-extrabold text-sm flex items-center justify-center border transition-all duration-300 shadow-[0_4px_0_var(--cc-bg-hover)] cursor-pointer select-none ${
+        active
+          ? "scale-105 bg-[var(--cc-green)] border-[var(--cc-green-dark)] text-[var(--cc-bg-page)] shadow-[0_4px_0_var(--cc-green-dark)]"
+          : "active:scale-95 bg-[var(--cc-bg-input)] border-[var(--cc-border)] text-[var(--cc-text-secondary)]"
+      }`;
+
   return (
-    <div className="bg-slate-900/60 backdrop-blur-md border border-slate-800 p-6 rounded-2xl shadow-2xl flex flex-col gap-5">
-      <div className="flex flex-col gap-2 border-b border-slate-800 pb-3">
+    <div className="relative flex flex-col items-center gap-4">
+      <div className="flex flex-col items-center gap-3 border p-3 rounded-2xl shadow-xl bg-cc-bg-card border-cc-border">
+        <button
+          onClick={() => onViewModeChange("3d")}
+          className={btnClass(viewMode === "3d")}
+        >
+          3D
+        </button>
+
+        <button
+          onClick={() => onViewModeChange("2.5d")}
+          className={btnClass(viewMode === "2.5d")}
+        >
+          2.5D
+        </button>
+
+        <button
+          onClick={() => onViewModeChange("2d")}
+          className={btnClass(viewMode === "2d")}
+        >
+          2D
+        </button>
+
+        <div className="w-8 border-b my-1 border-cc-border" />
+
+        <button
+          onClick={onFlipBoard}
+          title="Flip Board"
+          className={btnClass(false)}
+        >
+          🔄
+        </button>
+
+        <button
+          onClick={() => setShowOptionsPopover((prev) => !prev)}
+          title="Options"
+          className={`${btnClass(showOptionsPopover)} text-2xl`}
+        >
+          •••
+        </button>
+
         <button
           onClick={onReturnHome}
-          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 transition-colors cursor-pointer text-zinc-200"
+          title="Return Home"
+          className="w-12 h-12 flex items-center justify-center rounded-xl cursor-pointer transition-all hover:-translate-y-0.5 active:translate-y-0 border bg-cc-bg-input hover:bg-red-800 border-cc-border shadow-[0_4px_0_var(--cc-bg-hover)] text-xl"
         >
-          🏠 Return to Home
+          🏠
         </button>
       </div>
 
-      <h2 className="text-sm font-bold uppercase tracking-wider text-slate-400 border-b border-slate-800 pb-2">
-        Settings &amp; Controls
-      </h2>
-
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col gap-1.5">
-          <span className="text-xs text-slate-500 font-semibold">
-            Game Mode
-          </span>
-          {hasHistory ? (
-            <div className="w-full px-4 py-2.5 text-sm bg-slate-950/40 text-zinc-300 border border-slate-850/60 rounded-xl font-semibold flex items-center justify-between">
-              <span>
-                {gameMode === "pvp" && "Player vs Player"}
-                {gameMode === "computer-black" && "Play as White (vs Computer)"}
-                {gameMode === "computer-white" && "Play as Black (vs Computer)"}
-                {gameMode === "online" && "Multiplayer Online"}
-              </span>
-              <span className="text-slate-500 text-[10px] uppercase font-bold tracking-wider bg-slate-800/40 px-2 py-0.5 rounded border border-slate-700/30 animate-pulse">
-                Active
-              </span>
-            </div>
-          ) : (
-            <select
-              value={gameMode}
-              onChange={(e) => onGameModeChange(e.target.value as GameMode)}
-              className="w-full pl-3 pr-9 py-2.5 text-sm bg-slate-950/40 text-zinc-200 border border-slate-850 rounded-xl focus:ring-emerald-500 focus:border-emerald-500 outline-none cursor-pointer appearance-none bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20fill%3D%22none%22%20viewBox%3D%220%200%2020%2020%22%3E%3Cpath%20stroke%3D%22%23a3a3a0%22%20stroke-linecap%3D%22round%22%20stroke-linejoin%3D%22round%22%20stroke-width%3D%221.5%22%20d%3D%22m6%208%204%204%204-4%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_12px_center] bg-[size:16px] bg-no-repeat transition-all"
-            >
-              <option value="pvp" className="bg-slate-900 text-zinc-200">
-                Player vs Player
-              </option>
-              <option
-                value="computer-black"
-                className="bg-slate-900 text-zinc-200"
-              >
-                Play as White (vs Computer)
-              </option>
-              <option
-                value="computer-white"
-                className="bg-slate-900 text-zinc-200"
-              >
-                Play as Black (vs Computer)
-              </option>
-              <option value="online" className="bg-slate-900 text-zinc-200">
-                Multiplayer Online
-              </option>
-            </select>
-          )}
-        </div>
-
-        {gameMode === "online" && (
-          <OnlineMatchmaker
-            joinedRoom={joinedRoom}
-            playerColor={playerColor}
-            inQueue={inQueue}
-            userRating={userRating}
-            roomCode={roomCode}
-            onUserRatingChange={onUserRatingChange}
-            onRoomCodeChange={onRoomCodeChange}
-            onJoinQueue={onJoinQueue}
-            onLeaveQueue={onLeaveQueue}
-            onJoinRoom={onJoinRoom}
-          />
-        )}
-
-        <label className="flex items-center gap-3 text-sm font-semibold text-zinc-300 cursor-pointer hover:text-zinc-150 transition-colors bg-slate-950/40 p-3 rounded-xl border border-slate-800/80 mt-2">
-          <input
-            type="checkbox"
-            checked={autoFlip}
-            onChange={(e) => onAutoFlipToggle(e.target.checked)}
-            className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900 cursor-pointer"
-          />
-          Auto-Flip Board on Turn
-        </label>
-
-        <div className="flex flex-col gap-2 mt-2">
-          {hasHistory && !isGameOver && (
+      {showOptionsPopover && (
+        <div className="absolute right-20 top-0 w-80 border p-5 rounded-2xl shadow-2xl z-40 animate-fade-in flex flex-col gap-4 bg-cc-bg-card border-cc-border">
+          <div className="flex justify-between items-center border-b pb-2 border-cc-border">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-cc-text-primary">
+              Game Settings
+            </h3>
             <button
-              onClick={onResign}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-800/60 hover:border-red-700 transition-all cursor-pointer text-red-200"
+              onClick={() => setShowOptionsPopover(false)}
+              className="opacity-65 hover:opacity-100 text-xs font-bold cursor-pointer text-cc-text-primary"
             >
-              🏳️ Give Up / Resign
+              Close ✕
             </button>
-          )}
-          <button
-            onClick={onUndo}
-            disabled={!hasHistory}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-slate-800 hover:bg-slate-750 active:scale-98 border border-slate-700 hover:border-slate-650 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed text-zinc-200"
-          >
-            ↩️ Undo Move
-          </button>
-          <button
-            onClick={onFlipBoard}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl bg-slate-800 hover:bg-slate-750 active:scale-98 border border-slate-700 hover:border-slate-650 transition-all cursor-pointer text-zinc-200"
-          >
-            🔄 Flip Board
-          </button>
-          <button
-            onClick={onReset}
-            className="w-full flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold rounded-xl bg-emerald-600 hover:bg-emerald-550 active:scale-98 text-white transition-all cursor-pointer shadow-md shadow-emerald-950/20"
-          >
-            🆕 Reset Match
-          </button>
+          </div>
+
+          <div className="flex flex-col gap-3.5 text-cc-text-secondary">
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] font-bold uppercase tracking-wider text-cc-text-secondary">
+                Game Mode
+              </span>
+              <div className="w-full px-3 py-2.5 text-xs border rounded-xl font-semibold flex items-center justify-between bg-cc-bg-sidebar text-cc-text-primary border-cc-border">
+                <span>
+                  {gameMode === "pvp" && "Player vs Player"}
+                  {gameMode === "computer-black" && "Play as White (vs Computer)"}
+                  {gameMode === "computer-white" && "Play as Black (vs Computer)"}
+                  {gameMode === "online" && "Multiplayer Online"}
+                </span>
+                <span className="text-cc-green text-[9px] uppercase font-bold tracking-wider bg-cc-green/10 px-1.5 py-0.5 rounded border border-cc-green/30">
+                  Active
+                </span>
+              </div>
+            </div>
+
+            <div className="border-t pt-3 flex flex-col gap-3 border-cc-border">
+              <label className="flex items-center gap-3 text-xs font-semibold cursor-pointer transition-colors p-2.5 rounded-xl border select-none bg-cc-bg-input border-cc-border text-cc-text-primary hover:bg-cc-bg-hover">
+                <input
+                  type="checkbox"
+                  checked={autoFlip}
+                  onChange={(e) => onAutoFlipToggle(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-700 bg-slate-800 text-emerald-500 focus:ring-emerald-500 focus:ring-offset-slate-900 cursor-pointer"
+                />
+                Auto-Flip Board on Turn
+              </label>
+
+              {hasHistory && !isGameOver && (
+                <button
+                  onClick={() => {
+                    onResign();
+                    setShowOptionsPopover(false);
+                  }}
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-800/60 hover:border-red-700 transition-all text-red-200 cursor-pointer"
+                >
+                  🏳️ Give Up / Resign
+                </button>
+              )}
+
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    onUndo();
+                    setShowOptionsPopover(false);
+                  }}
+                  disabled={!hasHistory}
+                  className="flex-1 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer bg-cc-bg-input border-cc-border text-cc-text-primary hover:bg-cc-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ↩️ Undo Move
+                </button>
+
+                <button
+                  onClick={() => {
+                    onReset();
+                    setShowOptionsPopover(false);
+                  }}
+                  className="flex-1 py-2 text-xs font-bold rounded-xl text-white transition-all cursor-pointer shadow-[0_4px_0_var(--cc-green-dark)] active:shadow-none active:translate-y-[4px] bg-cc-green hover:bg-cc-green-hover"
+                >
+                  🆕 Reset Match
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 });

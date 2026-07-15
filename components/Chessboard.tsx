@@ -26,19 +26,19 @@ export default function Chessboard({
   };
 
   return (
-    <div className="w-full max-w-[560px] aspect-square rounded-xl overflow-hidden shadow-2xl border-4 border-zinc-700 bg-zinc-800 p-1">
+    <div className="w-full aspect-square rounded-xl overflow-hidden shadow-2xl border-2 p-0.5 border-[var(--cc-border)] bg-[var(--cc-bg-card)]">
       <ChessboardProvider
         options={{
           position: position,
           onPieceDrop: handlePieceDrop,
           boardOrientation: flipped ? "black" : "white",
-          darkSquareStyle: { backgroundColor: "#078987ff" },
-          lightSquareStyle: { backgroundColor: "#ffffffff" },
+          darkSquareStyle: { backgroundColor: "#779952" },
+          lightSquareStyle: { backgroundColor: "#eeedd2" },
           boardStyle: {
-            borderRadius: "8px",
+            borderRadius: "6px",
             boxShadow: "0 5px 15px rgba(0, 0, 0, 0.5)",
           },
-          allowDrawingArrows: true,
+          allowDrawingArrows: false,
           clearArrowsOnClick: true,
           showAnimations: true,
           animationDurationInMs: 200,
