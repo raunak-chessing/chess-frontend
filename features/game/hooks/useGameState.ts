@@ -117,6 +117,7 @@ export interface GameState {
   capturedBlack: string[];
   turn: "w" | "b";
   viewMoveIndex: number | null;
+  premoveQueue: { from: string; to: string }[];
   variant: GameVariant;
   whiteChecks: number;
   blackChecks: number;
@@ -157,7 +158,9 @@ export interface GameActions {
   applyMove: (from: string, to: string) => boolean;
   applyUndo: () => void;
   setViewMoveIndex: (index: number | null) => void;
-  setVariant: (v: GameVariant) => void;
+  setVariant: (variant: GameVariant) => void;
+  clearPremoves: () => void;
+  setFen: React.Dispatch<React.SetStateAction<string>>;
 }
 
 export function useGameState(): GameState & GameActions {
@@ -168,6 +171,7 @@ export function useGameState(): GameState & GameActions {
   const [flipped, setFlipped] = useState<boolean>(false);
   const [autoFlip, setAutoFlip] = useState<boolean>(false);
   const [viewMoveIndex, setViewMoveIndex] = useState<number | null>(null);
+  const [premoveQueue, setPremoveQueue] = useState<{ from: string; to: string }[]>([]);
 
   const [variant, setVariant] = useState<GameVariant>("standard");
   const variantRef = useRef<GameVariant>(variant);
@@ -224,6 +228,7 @@ export function useGameState(): GameState & GameActions {
       setWhiteChecks(0);
       setBlackChecks(0);
       setVariantWinner(null);
+      setPremoveQueue([]);
       if (flipBoard) {
         setFlipped(true);
       } else if (autoFlip) {
@@ -340,6 +345,7 @@ export function useGameState(): GameState & GameActions {
       setFen(game.fen());
       setSelectedSquare("");
       setViewMoveIndex(null);
+      setPremoveQueue([]);
       const history = game.history({ verbose: true });
       if (history.length > 0) {
         const last = history[history.length - 1];
@@ -405,6 +411,10 @@ export function useGameState(): GameState & GameActions {
     [game, autoFlip, syncFlipState],
   );
 
+  const clearPremoves = useCallback(() => {
+    setPremoveQueue([]);
+  }, []);
+
   const handlePieceDrop = useCallback(
     (
       sourceSquare: string,
@@ -414,10 +424,25 @@ export function useGameState(): GameState & GameActions {
       playerColor: "w" | "b" | null,
       socket: { emit: (event: string, data: Record<string, string>) => void } | null,
     ): boolean => {
-      if (!isPlayerTurn(gameMode, joinedRoom, playerColor)) return false;
+      const isTurn = isPlayerTurn(gameMode, joinedRoom, playerColor);
+      
+      if (!isTurn) {
+        // Enqueue premove if playing online
+        if (gameMode === "online" && joinedRoom && !game.isGameOver()) {
+          // Just a pseudo-check to see if the piece belongs to the player
+          const piece = game.get(sourceSquare as Square);
+          if (piece && piece.color === playerColor) {
+            setPremoveQueue(prev => [...prev, { from: sourceSquare, to: targetSquare }]);
+          }
+        }
+        return false; // Return false so the piece snaps back visually, but we recorded it
+      }
+      
+      // If it's our turn, clear premoves that might have been leftover
+      setPremoveQueue([]);
       return executeMove(sourceSquare, targetSquare, gameMode, joinedRoom, socket);
     },
-    [isPlayerTurn, executeMove],
+    [isPlayerTurn, executeMove, game],
   );
 
   const handleSquareClick = useCallback(
@@ -428,7 +453,22 @@ export function useGameState(): GameState & GameActions {
       playerColor: "w" | "b" | null,
       socket: { emit: (event: string, data: Record<string, string>) => void } | null,
     ) => {
-      if (!isPlayerTurn(gameMode, joinedRoom, playerColor)) return;
+      const isTurn = isPlayerTurn(gameMode, joinedRoom, playerColor);
+
+      if (!isTurn) {
+        if (gameMode === "online" && joinedRoom && !game.isGameOver()) {
+          if (selectedSquare) {
+            setPremoveQueue(prev => [...prev, { from: selectedSquare, to: square }]);
+            setSelectedSquare("");
+          } else {
+            const piece = game.get(square as Square);
+            if (piece && piece.color === playerColor) {
+              setSelectedSquare(square);
+            }
+          }
+        }
+        return;
+      }
 
       if (selectedSquare === square) {
         setSelectedSquare("");
@@ -436,6 +476,7 @@ export function useGameState(): GameState & GameActions {
       }
 
       if (selectedSquare) {
+        setPremoveQueue([]);
         const moved = executeMove(selectedSquare, square, gameMode, joinedRoom, socket);
         if (moved) return;
       }
@@ -485,8 +526,15 @@ export function useGameState(): GameState & GameActions {
       });
     }
 
+    if (premoveQueue.length > 0) {
+      premoveQueue.forEach((pm) => {
+        styles[pm.from] = { background: "rgba(239, 68, 68, 0.6)" }; // Red-500 at 60% opacity
+        styles[pm.to] = { background: "rgba(239, 68, 68, 0.6)" };
+      });
+    }
+
     return styles;
-  }, [game, lastMove, selectedSquare]);
+  }, [game, lastMove, selectedSquare, premoveQueue]);
 
   const performUndo = useCallback((): { undone: boolean; prevFrom: string; prevTo: string } => {
     const undone = game.undo();
@@ -611,5 +659,8 @@ export function useGameState(): GameState & GameActions {
     applyUndo,
     setViewMoveIndex,
     setVariant,
+    premoveQueue,
+    clearPremoves,
+    setFen,
   };
 }

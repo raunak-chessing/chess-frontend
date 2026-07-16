@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { Chess } from "chess.js";
 import type { GameMode } from "../types/game.types";
+import { COMPUTER_OPPONENTS } from "../constants/setupOptions";
 
 interface UseChessEngineParams {
   game: Chess;
@@ -33,19 +34,11 @@ export function useChessEngine({
 
     let skillLevel = 12;
     let depth = 8;
-
-    if (botDifficulty === 1) {
-      skillLevel = 0;
-      depth = 1;
-    } else if (botDifficulty === 2) {
-      skillLevel = 5;
-      depth = 3;
-    } else if (botDifficulty === 3) {
-      skillLevel = 12;
-      depth = 8;
-    } else if (botDifficulty === 4) {
-      skillLevel = 20;
-      depth = 15;
+    
+    const bot = COMPUTER_OPPONENTS.find(b => b.id === botDifficulty);
+    if (bot) {
+      skillLevel = bot.skillLevel;
+      depth = bot.depth;
     }
 
     const worker = new Worker("/stockfish/stockfish-18-lite-single.js");
@@ -58,7 +51,12 @@ export function useChessEngine({
         if (bestMoveStr && bestMoveStr !== "(none)") {
           const from = bestMoveStr.substring(0, 2);
           const to = bestMoveStr.substring(2, 4);
-          applyMove(from, to);
+          
+          // Add artificial delay to simulate "thinking" and make it feel more human
+          const delay = Math.random() * 1000 + 500; // 500ms to 1500ms
+          setTimeout(() => {
+            applyMove(from, to);
+          }, delay);
         }
         worker.terminate();
       }

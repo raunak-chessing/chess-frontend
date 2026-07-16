@@ -61,6 +61,14 @@ const OPENINGS: OpeningVariation[] = [
   }
 ];
 
+interface MasterGame {
+  id: string;
+  winner: "white" | "black" | "draw";
+  white: { name: string; rating: number };
+  black: { name: string; rating: number };
+  year: number;
+}
+
 interface OpeningExplorerProps {
   onReturnToDashboard: () => void;
 }
@@ -69,6 +77,8 @@ export const OpeningExplorer = memo(function OpeningExplorer({ onReturnToDashboa
   const [selectedIdx, setSelectedIdx] = useState(0);
   const [moveStep, setMoveStep] = useState(0); // 0 means starting position
   const [boardPosition, setBoardPosition] = useState("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+  const [masterGames, setMasterGames] = useState<MasterGame[]>([]);
+  const [isLoadingGames, setIsLoadingGames] = useState(false);
 
   const activeOpening = OPENINGS[selectedIdx];
 
@@ -89,6 +99,29 @@ export const OpeningExplorer = memo(function OpeningExplorer({ onReturnToDashboa
     }
     setBoardPosition(chess.fen());
   }, [selectedIdx, moveStep, activeOpening]);
+
+  // Fetch Master Games
+  useEffect(() => {
+    const fetchGames = async () => {
+      setIsLoadingGames(true);
+      try {
+        const res = await fetch(`https://explorer.lichess.ovh/master?fen=${encodeURIComponent(boardPosition)}&topGames=5`);
+        const data = await res.json();
+        setMasterGames(data.topGames || []);
+      } catch (err) {
+        setMasterGames([]);
+      } finally {
+        setIsLoadingGames(false);
+      }
+    };
+    
+    // Debounce to avoid spamming the API while stepping fast
+    const timer = setTimeout(() => {
+      fetchGames();
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [boardPosition]);
 
   const handleNext = () => {
     if (moveStep < activeOpening.moves.length) {
@@ -205,6 +238,48 @@ export const OpeningExplorer = memo(function OpeningExplorer({ onReturnToDashboa
                   ? activeOpening.comments[moveStep - 1]
                   : "Welcome to the Opening Explorer! Select an opening from the left menu and use the controls below the board to walk through each variation move-by-move. Learn the core plans, ideas, and positional strategy behind the book moves."}
               </p>
+            </div>
+            
+            {/* Master Games Database */}
+            <div className="mt-4 pt-4 border-t border-cc-border-light flex flex-col gap-3">
+               <span className="text-[10px] text-zinc-400 font-bold uppercase tracking-wider font-serif">
+                 Master Games Database
+               </span>
+               
+               {isLoadingGames ? (
+                 <div className="text-zinc-500 text-xs italic">Loading historic games...</div>
+               ) : masterGames.length > 0 ? (
+                 <div className="flex flex-col gap-2 overflow-y-auto max-h-[150px] pr-2">
+                   {masterGames.map(game => (
+                     <a 
+                       key={game.id} 
+                       href={`https://lichess.org/${game.id}`}
+                       target="_blank"
+                       rel="noreferrer"
+                       className="bg-cc-bg-sidebar hover:bg-cc-bg-hover border border-cc-border-light p-2 rounded-lg flex justify-between items-center transition-colors text-xs"
+                     >
+                       <div className="flex flex-col gap-1">
+                         <div className="flex items-center gap-2">
+                           <span className="w-2 h-2 rounded-full bg-white border border-zinc-300"></span>
+                           <span className="font-bold text-white">{game.white.name} <span className="text-zinc-500 font-normal">({game.white.rating})</span></span>
+                         </div>
+                         <div className="flex items-center gap-2">
+                           <span className="w-2 h-2 rounded-full bg-black border border-zinc-700"></span>
+                           <span className="font-bold text-white">{game.black.name} <span className="text-zinc-500 font-normal">({game.black.rating})</span></span>
+                         </div>
+                       </div>
+                       <div className="flex flex-col items-end gap-1">
+                         <span className="text-zinc-500 text-[10px]">{game.year}</span>
+                         <span className={`font-bold ${game.winner === 'white' ? 'text-white' : game.winner === 'black' ? 'text-zinc-500' : 'text-zinc-400'}`}>
+                           {game.winner === 'white' ? '1-0' : game.winner === 'black' ? '0-1' : '½-½'}
+                         </span>
+                       </div>
+                     </a>
+                   ))}
+                 </div>
+               ) : (
+                 <div className="text-zinc-500 text-xs italic">No master games found for this position.</div>
+               )}
             </div>
           </div>
         </div>

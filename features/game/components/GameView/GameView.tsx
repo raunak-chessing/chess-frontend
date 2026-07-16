@@ -11,13 +11,17 @@ import { GameStatusBar } from "../GameStatusBar";
 import { GameControls } from "../GameControls";
 import { EvaluationBar } from "../EvaluationBar/EvaluationBar";
 import MoveHistory from "../MoveHistory/MoveHistory";
+import { GameReview } from "../GameReview/GameReview";
 import { PuzzleRush } from "../PuzzleRush/PuzzleRush";
 import { OnlineMatchmaker } from "../OnlineMatchmaker";
+import { GameChat } from "../GameChat";
 import { TIME_CONTROLS, CHESS_VARIANTS, COMPUTER_OPPONENTS, GAME_MODE_TABS } from "../../constants/setupOptions";
 import { Card } from "../../../../components/ui/Card";
 import { SelectableCard } from "../../../../components/ui/SelectableCard";
 import { SectionHeader } from "../../../../components/ui/SectionHeader";
 import { formatTime } from "../../../../lib/utils";
+import { useVoiceControl } from "../../hooks/useVoiceControl";
+import { useVoiceAnnouncer } from "../../hooks/useVoiceAnnouncer";
 
 interface GameViewProps {
   initialMode: GameMode;
@@ -29,6 +33,8 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const [localResult, setLocalResult] = useState<"won" | "lost" | "draw" | "opponent-disconnected" | "opponent-resigned" | null>(null);
   const [overlayDismissed, setOverlayDismissed] = useState(false);
   const [viewMode, setViewMode] = useState<"3d" | "2.5d" | "2d">("3d");
+  const [showReview, setShowReview] = useState(false);
+  const [isBlindfold, setIsBlindfold] = useState(false);
 
   const [whiteTime, setWhiteTime] = useState(600);
   const [blackTime, setBlackTime] = useState(600);
@@ -40,7 +46,11 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const [localTimeControl, setLocalTimeControl] = useState("10|0");
   const [botSide, setBotSide] = useState<"w" | "b" | "random">("random");
 
+  const [openingName, setOpeningName] = useState<string | null>(null);
+
   const gameState = useGameState();
+
+  const activeBot = useMemo(() => COMPUTER_OPPONENTS.find((b) => b.id === botDifficulty), [botDifficulty]);
 
   if (gameMode === "puzzle-rush") {
     return (
@@ -87,6 +97,53 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   );
 
   const socketState = useGameSocket(socketHandlers);
+
+  // Apply a move explicitly for Voice Control (which can take SAN or {from, to})
+  const handleVoiceMove = useCallback((move: string | { from: string; to: string }) => {
+    if (gameState.game.isGameOver() || localResult !== null) return false;
+    // Disallow if it's not our turn
+    const isOurTurn = 
+      (gameMode === "online" && socketState.playerColor === gameState.turn) ||
+      (gameMode === "computer-black" && gameState.turn === "w") ||
+      (gameMode === "computer-white" && gameState.turn === "b") ||
+      (gameMode === "pvp");
+
+    if (!isOurTurn) return false;
+
+    // We try to find the move in legal moves to get the exact SAN
+    const legalMoves = gameState.game.moves({ verbose: true });
+    let matchedMove = null;
+
+    if (typeof move === "string") {
+      matchedMove = legalMoves.find(m => m.san.toLowerCase() === move.toLowerCase() || m.san.replace(/[+#]/,'').toLowerCase() === move.toLowerCase());
+    } else {
+      matchedMove = legalMoves.find(m => m.from === move.from && m.to === move.to);
+    }
+
+    if (!matchedMove) return false;
+
+    const success = gameState.applyMove(matchedMove.san);
+    if (success && gameMode === "online" && socketState.joinedRoom) {
+      socketState.socket.emit("move", {
+        room: socketState.joinedRoom,
+        move: matchedMove.san,
+      });
+    }
+    return success;
+  }, [gameState, gameMode, localResult, socketState]);
+
+  const { isListening, toggleListening } = useVoiceControl(handleVoiceMove);
+
+  const historyLength = gameState.game.history().length;
+  const lastMoveSan = historyLength > 0 ? gameState.game.history()[historyLength - 1] : null;
+  const turn = gameState.game.turn();
+  const isOpponentMoveNow = 
+      (gameMode === "online" && socketState.playerColor === turn) ||
+      (gameMode === "computer-black" && turn === "w") ||
+      (gameMode === "computer-white" && turn === "b");
+  
+  // If it's our turn now, it means the opponent just moved!
+  useVoiceAnnouncer(historyLength, lastMoveSan, isOpponentMoveNow, isBlindfold);
 
   // Auto-dismiss setup lobby when an online match is successfully found
   useEffect(() => {
@@ -169,6 +226,58 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
       if (interval) clearInterval(interval);
     };
   }, [gameState.fen, gameState.game, gameMode, socketState.playerColor, localResult]);
+
+  useEffect(() => {
+    // Premove execution logic
+    const isTurn =
+      (gameMode === "online" && socketState.playerColor === gameState.turn) ||
+      (gameMode === "computer-black" && gameState.turn === "w") ||
+      (gameMode === "computer-white" && gameState.turn === "b") ||
+      gameMode === "pvp";
+
+    if (isTurn && gameState.premoveQueue.length > 0 && !gameState.game.isGameOver()) {
+      const pm = gameState.premoveQueue[0];
+      const success = gameState.handlePieceDrop(
+        pm.from,
+        pm.to,
+        gameMode,
+        socketState.joinedRoom,
+        socketState.playerColor,
+        socketState.socket,
+      );
+      if (!success) {
+        gameState.clearPremoves();
+      }
+    }
+  }, [
+    gameState.turn,
+    gameState.premoveQueue,
+    gameMode,
+    socketState.playerColor,
+    socketState.joinedRoom,
+    socketState.socket,
+    gameState,
+  ]);
+
+  // Fetch opening name for the first 15 moves
+  useEffect(() => {
+    if (gameState.game.history().length > 15) return;
+    
+    const fetchOpening = async () => {
+      try {
+        const res = await fetch(`https://explorer.lichess.ovh/master?fen=${encodeURIComponent(gameState.fen)}`);
+        const data = await res.json();
+        if (data.opening && data.opening.name) {
+          setOpeningName(data.opening.name);
+        }
+      } catch (e) {
+        // silently ignore
+      }
+    };
+
+    const timer = setTimeout(fetchOpening, 500);
+    return () => clearTimeout(timer);
+  }, [gameState.fen, gameState.game]);
 
   useChessEngine({
     game: gameState.game,
@@ -466,6 +575,21 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
             </>
           )}
 
+          {gameMode !== "online" && (
+            <div className="flex flex-col gap-2 border-t pt-4 border-cc-border-light">
+              <SectionHeader>Training Modes</SectionHeader>
+              <div className="flex items-center gap-2">
+                <SelectableCard
+                  isActive={isBlindfold}
+                  onClick={() => setIsBlindfold(!isBlindfold)}
+                  className="py-2 px-4 rounded-xl text-xs font-bold"
+                >
+                  Blindfold Mode
+                </SelectableCard>
+              </div>
+            </div>
+          )}
+
           {gameMode === "online" ? (
             <div className="mt-4">
               <OnlineMatchmaker
@@ -540,15 +664,20 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
             userRating={socketState.userRating}
           />
 
-          <div className="flex flex-col gap-1.5 items-end">
-            <div className="rounded-xl flex items-center justify-between w-40 md:w-52 h-14 overflow-hidden border bg-cc-bg-card border-cc-border">
+          <div className="flex flex-col gap-1.5 items-end relative">
+            <div className="rounded-xl flex items-center justify-between w-40 md:w-52 h-14 overflow-hidden border bg-cc-bg-card border-cc-border relative z-10">
               <div className="h-full w-11 md:w-14 flex items-center justify-center text-2xl bg-cc-bg-hover">
-                🤖
+                {gameMode.includes("computer") && activeBot ? activeBot.icon : "🤖"}
               </div>
               <span className="flex-1 font-bold text-sm md:text-base tracking-wide text-center truncate px-2 max-w-[130px] md:max-w-[170px] text-cc-text-primary">
-                {socketState.opponent ? `${socketState.opponent.name} (${socketState.opponent.rating})` : (gameMode === "online" ? "Opponent" : gameMode === "pvp" ? "Black" : "AI 0 Lvl")}
+                {socketState.opponent ? `${socketState.opponent.name} (${socketState.opponent.rating})` : (gameMode === "online" ? "Opponent" : gameMode === "pvp" ? "Black" : activeBot ? `${activeBot.name} (${activeBot.elo})` : "AI")}
               </span>
             </div>
+            {gameMode.includes("computer") && activeBot && (
+              <div className="absolute -bottom-8 right-0 text-[10px] bg-cc-bg-sidebar border border-cc-border text-cc-text-secondary px-3 py-1.5 rounded-2xl rounded-tr-sm shadow-md whitespace-nowrap z-20 transition-all">
+                {activeBot.message}
+              </div>
+            )}
             {gameState.variant === "three-check" && (
               <div className="text-[10px] text-red-500 font-extrabold uppercase tracking-wider mr-1">
                 Checks: {oppChecks} / 3
@@ -559,6 +688,12 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
             </div>
           </div>
         </div>
+
+        {openingName && (
+          <div className="mb-4 text-xs font-serif font-bold text-cc-text-secondary tracking-widest uppercase bg-cc-bg-surface px-4 py-1.5 rounded-full border border-cc-border-light">
+            {openingName}
+          </div>
+        )}
 
         {gameMode === "online" && !socketState.connected && (
           <div className="mb-4 bg-red-900/30 text-red-400 font-semibold px-6 py-2 rounded-xl text-sm border border-red-900/50 flex items-center gap-2 max-w-lg mx-auto w-full justify-center">
@@ -583,7 +718,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
                 isGameOver={gameState.game.isGameOver() || localResult !== null}
               />
             </div>
-            <div className="chess-3d-scene flex items-center justify-center board-container-responsive aspect-square relative">
+            <div className={`chess-3d-scene flex items-center justify-center board-container-responsive aspect-square relative ${isBlindfold ? "blindfold-mode" : ""}`}>
               <Board
                 position={gameState.fen}
                 flipped={gameState.flipped}
@@ -591,6 +726,20 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
                 onPieceDrop={handlePieceDrop}
                 squareStyles={gameState.getSquareStyles()}
                 onSquareClick={handleSquareClick}
+                onPremoveClear={gameState.clearPremoves}
+                isDraggablePiece={({ piece }) => {
+                  if (gameState.game.isGameOver() || localResult !== null) return false;
+                  // If it's a game mode against bot or local PvP, use normal rules
+                  if (gameMode !== "online") {
+                    const isAiTurn =
+                      (gameMode === "computer-black" && gameState.turn === "b") ||
+                      (gameMode === "computer-white" && gameState.turn === "w");
+                    if (isAiTurn) return false;
+                    return true;
+                  }
+                  // For online, allow dragging our pieces at any time (for premove)
+                  return piece.startsWith(socketState.playerColor || "w");
+                }}
               />
                 
               {overlayConfig && (
@@ -629,12 +778,26 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
           </div>
 
           <div className="order-2 lg:order-4 flex w-full lg:w-auto justify-center move-history-responsive">
-            <MoveHistory
-              game={gameState.game}
-              viewMoveIndex={gameState.viewMoveIndex}
-              onSelectMoveIndex={gameState.setViewMoveIndex}
-              boardHeightClass="h-full"
-            />
+            {showReview ? (
+              <GameReview 
+                pgn={gameState.game.pgn()}
+                whitePlayerName={socketState.selfPlayer?.name || "White"}
+                blackPlayerName={socketState.opponent?.name || "Black"}
+              />
+            ) : (
+              <MoveHistory
+                game={gameState.game}
+                viewMoveIndex={gameState.viewMoveIndex}
+                onSelectMoveIndex={gameState.setViewMoveIndex}
+                boardHeightClass="h-full"
+              />
+            )}
+            
+            {gameMode === "online" && socketState.joinedRoom && (
+              <div className="mt-4 w-full h-[200px]">
+                <GameChat socket={socketState.socket} room={socketState.joinedRoom} />
+              </div>
+            )}
           </div>
 
           <div className="order-5 lg:order-5 flex items-start gap-4 justify-center">
@@ -654,7 +817,20 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
               onReset={handleReset}
               onReturnHome={onReturnHome}
               onResign={handleResign}
+              onReviewGame={() => setShowReview(!showReview)}
             />
+            
+            <button 
+              onClick={toggleListening}
+              className={`h-14 px-4 rounded-xl font-bold flex items-center justify-center transition-colors shadow-sm ${
+                isListening 
+                  ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" 
+                  : "bg-cc-bg-surface hover:bg-cc-bg-hover text-cc-text-secondary border border-cc-border"
+              }`}
+              title="Voice Control"
+            >
+              🎤 {isListening ? "Listening..." : "Voice"}
+            </button>
           </div>
         </div>
 

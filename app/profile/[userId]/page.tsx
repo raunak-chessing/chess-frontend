@@ -2,8 +2,10 @@
 
 import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ProfileHeader, StatsGrid, RatingChart, RecentGames } from "@/features/profile";
+import { ProfileHeader, StatsGrid, RatingChart, RecentGames, AdvancedInsights, AchievementsList } from "@/features/profile";
 import { Spinner } from "@/components/ui/Spinner";
+import { authClient } from "@/lib/auth-client";
+import { DailyGamesList } from "@/features/profile/components/DailyGamesList";
 
 interface UserProfileResponse {
   user: {
@@ -28,24 +30,34 @@ export default function ProfileDetailPage({ params }: { params: Promise<{ userId
   const router = useRouter();
 
   const [data, setData] = useState<UserProfileResponse | null>(null);
+  const [dailyGames, setDailyGames] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
+  const { data: session } = authClient.useSession();
+  const isOwnProfile = session?.user?.id === userId;
+
   useEffect(() => {
-    fetch(`http://localhost:4001/users/${userId}/profile`)
-      .then((res) => {
-        if (!res.ok) throw new Error("User profile not found.");
-        return res.json();
-      })
-      .then((resData) => {
-        setData(resData);
+    const fetchProfile = fetch(`http://localhost:4001/users/${userId}/profile`).then((res) => {
+      if (!res.ok) throw new Error("User profile not found.");
+      return res.json();
+    });
+
+    const fetchDailyGames = isOwnProfile
+      ? fetch(`http://localhost:4001/api/games/daily/my-games?userId=${userId}`).then((res) => res.ok ? res.json() : [])
+      : Promise.resolve([]);
+
+    Promise.all([fetchProfile, fetchDailyGames])
+      .then(([profileData, gamesData]) => {
+        setData(profileData);
+        setDailyGames(gamesData);
         setLoading(false);
       })
       .catch((err) => {
         setError(err.message || "Failed to load user profile");
         setLoading(false);
       });
-  }, [userId]);
+  }, [userId, isOwnProfile]);
 
   if (loading) {
     return (
@@ -107,10 +119,21 @@ export default function ProfileDetailPage({ params }: { params: Promise<{ userId
         {/* 2. Rating Pool Cards Grid */}
         <StatsGrid ratings={ratings} stats={data.stats} />
 
-        {/* 3. Graph and Recent History */}
+        {/* 3. Advanced Insights */}
+        <div className="w-full">
+          <AdvancedInsights userId={data.user.id} />
+        </div>
+
+        {/* 4. Achievements */}
+        <div className="w-full">
+          <AchievementsList userId={data.user.id} />
+        </div>
+
+        {/* 5. Graph and Recent History */}
         <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-start">
-          <div className="md:col-span-6 lg:col-span-7">
-            <RatingChart recentGames={data.recentGames} userRating={data.user.rating} userId={data.user.id} />
+          <div className="md:col-span-6 lg:col-span-7 flex flex-col gap-5">
+            {isOwnProfile && <DailyGamesList games={dailyGames} userId={userId} />}
+            <RatingChart userId={data.user.id} />
           </div>
           <div className="md:col-span-6 lg:col-span-5">
             <RecentGames recentGames={data.recentGames} userId={data.user.id} />

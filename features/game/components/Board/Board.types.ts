@@ -2,9 +2,12 @@ import type { SquareStyles } from "../../types/game.types";
 
 export interface BoardProps {
   position: string;
-  flipped: boolean;
-  viewMode?: "3d" | "2.5d" | "2d";
-  onPieceDrop: (sourceSquare: string, targetSquare: string) => boolean;
-  squareStyles: SquareStyles;
-  onSquareClick: (square: string) => void;
+  flipped?: boolean;
+  viewMode?: "2d" | "2.5d" | "3d";
+  onPieceDrop: (sourceSquare: string, targetSquare: string, piece: string) => boolean;
+  squareStyles?: Record<string, React.CSSProperties>;
+  onSquareClick?: (square: string) => void;
+  premove?: [string, string] | null;
+  onPremoveClear?: () => void;
+  isDraggablePiece?: (args: { piece: string; sourceSquare: string }) => boolean;
 }

@@ -22,6 +22,7 @@ export const InteractiveLesson = memo(function InteractiveLesson({
   const [showHint, setShowHint] = useState(false);
   const [showTheory, setShowTheory] = useState(true);
   const [wrongAttempts, setWrongAttempts] = useState(0);
+  const [showVideo, setShowVideo] = useState(!!lesson.videoId);
 
   const [isSparring, setIsSparring] = useState(false);
   const [sparringChess, setSparringChess] = useState<Chess | null>(null);
@@ -54,6 +55,7 @@ export const InteractiveLesson = memo(function InteractiveLesson({
     setShowHint(false);
     setShowTheory(true);
     setWrongAttempts(0);
+    setShowVideo(!!lesson.videoId);
     setIsSparring(false);
     if (sparringWorkerRef.current) {
       sparringWorkerRef.current.terminate();
@@ -247,6 +249,7 @@ export const InteractiveLesson = memo(function InteractiveLesson({
     setIsCompleted(false);
     setShowHint(false);
     setWrongAttempts(0);
+    setShowVideo(!!lesson.videoId);
     setIsSparring(false);
     if (sparringWorkerRef.current) {
       sparringWorkerRef.current.terminate();
@@ -296,17 +299,29 @@ export const InteractiveLesson = memo(function InteractiveLesson({
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Board */}
+        {/* Main Area: Board or Video */}
         <div className="lg:col-span-7 flex justify-center">
           <div className="w-full max-w-[600px] relative rounded-2xl overflow-hidden border border-cc-border shadow-xl">
-            <Board
-              position={boardPosition}
-              flipped={lesson.turn === "b"}
-              viewMode="2d"
-              onPieceDrop={handlePieceDrop}
-              squareStyles={{}}
-              onSquareClick={() => {}}
-            />
+            {showVideo ? (
+              <div className="w-full aspect-video bg-black flex flex-col">
+                <iframe 
+                  src={`https://www.youtube.com/embed/${lesson.videoId}?autoplay=1`} 
+                  title="Lesson Video"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="w-full h-full"
+                ></iframe>
+              </div>
+            ) : (
+              <Board
+                position={boardPosition}
+                flipped={lesson.turn === "b"}
+                viewMode="2d"
+                onPieceDrop={handlePieceDrop}
+                squareStyles={{}}
+                onSquareClick={() => {}}
+              />
+            )}
 
             {/* Completion Overlay */}
             {isCompleted && (
@@ -359,7 +374,20 @@ export const InteractiveLesson = memo(function InteractiveLesson({
 
         {/* Right Panel */}
         <div className="lg:col-span-5 flex flex-col gap-4">
-          {/* Coach Panel */}
+          {showVideo ? (
+             <div className="bg-cc-bg-card p-6 rounded-2xl border border-cc-border shadow-md flex flex-col gap-6 text-center">
+               <div className="text-4xl">🎥</div>
+               <h3 className="text-xl font-serif font-extrabold text-white">Grandmaster Intro</h3>
+               <p className="text-zinc-400 text-sm">Watch the video to understand the core concepts behind this lesson before attempting the challenge.</p>
+               <button
+                 onClick={() => setShowVideo(false)}
+                 className="w-full py-4 bg-cc-green hover:bg-cc-green-hover text-white font-bold rounded-xl text-lg transition-all shadow-lg mt-4"
+               >
+                 Start Challenge
+               </button>
+             </div>
+          ) : (
+          /* Coach Panel */
           <div className="bg-cc-bg-card p-5 rounded-2xl border border-cc-border shadow-md flex flex-col gap-4">
             {/* Step Counter */}
             <div className="flex justify-between items-center border-b border-cc-border-light pb-3">
@@ -448,6 +476,7 @@ export const InteractiveLesson = memo(function InteractiveLesson({
               </button>
             </div>
           </div>
+          )}
 
           {/* Theory Panel (Collapsible) */}
           <div className="bg-cc-bg-card/80 rounded-2xl border border-cc-border-light overflow-hidden">

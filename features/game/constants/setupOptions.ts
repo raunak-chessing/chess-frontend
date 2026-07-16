@@ -20,10 +20,12 @@ export const CHESS_VARIANTS: { id: GameVariant; name: string; icon: string; desc
 ];
 
 export const COMPUTER_OPPONENTS = [
-  { id: 1, name: "Martin", elo: "250", icon: "👶", desc: "Easy" },
-  { id: 2, name: "Elara", elo: "800", icon: "👧", desc: "Medium" },
-  { id: 3, name: "Alex", elo: "1500", icon: "👨", desc: "Hard" },
-  { id: 4, name: "Stockfish", elo: "2500", icon: "🤖", desc: "Master" },
+  { id: 1, name: "Martin", elo: "250", icon: "👶", desc: "Easy", skillLevel: 0, depth: 1, contempt: 0, message: "Hi! I just learned how the pieces move." },
+  { id: 2, name: "Elara", elo: "800", icon: "👧", desc: "Medium", skillLevel: 5, depth: 3, contempt: 20, message: "I love attacking the king!" },
+  { id: 3, name: "Nelson", elo: "1300", icon: "😎", desc: "Tricky", skillLevel: 10, depth: 6, contempt: 50, message: "Watch out for my Queen." },
+  { id: 4, name: "Antonio", elo: "1500", icon: "👴", desc: "Solid", skillLevel: 12, depth: 8, contempt: -10, message: "I prefer a solid, positional game." },
+  { id: 5, name: "Isabel", elo: "2000", icon: "🧝‍♀️", desc: "Expert", skillLevel: 16, depth: 12, contempt: 0, message: "Let's have a good game." },
+  { id: 6, name: "Stockfish", elo: "3200", icon: "🤖", desc: "Master", skillLevel: 20, depth: 18, contempt: 0, message: "I am an engine. Prepare to lose." },
 ];
 
 export const GAME_MODE_TABS: { id: GameMode; name: string; icon: string }[] = [

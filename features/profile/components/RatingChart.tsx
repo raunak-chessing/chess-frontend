@@ -11,34 +11,33 @@ interface RecentGame {
 }
 
 interface RatingChartProps {
-  recentGames: RecentGame[];
-  userRating: number;
   userId: string;
 }
 
-export const RatingChart = memo(function RatingChart({ recentGames, userRating, userId }: RatingChartProps) {
+export const RatingChart = memo(function RatingChart({ userId }: RatingChartProps) {
   const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const [timeframe, setTimeframe] = useState<string>("30d");
+  const [trajectory, setTrajectory] = useState<number[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  // Reconstruct rating trajectory walking backward from current rating
-  const trajectory: number[] = [userRating];
-  let currRating = userRating;
+  useEffect(() => {
+    const fetchHistory = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(`http://localhost:4001/api/users/${userId}/rating-history?timeframe=${timeframe}`);
+        const data = await res.json();
+        // Assuming we just want to plot the rating values
+        setTrajectory(data.map((d: any) => d.rating));
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchHistory();
+  }, [userId, timeframe]);
 
-  for (const game of recentGames) {
-    if (game.status !== "COMPLETED" && game.status !== "DRAW") continue;
-    const isWhite = game.whitePlayerId === userId;
-    const isDraw = game.winner === "DRAW";
-    const didWin = !isDraw && ((isWhite && game.winner === "WHITE") || (!isWhite && game.winner === "BLACK"));
-    const didLose = !isDraw && !didWin;
-
-    if (didWin) {
-      currRating -= 8; // assuming standard Elo change
-    } else if (didLose) {
-      currRating += 8;
-    }
-    trajectory.unshift(currRating);
-  }
-
-  const hasHistory = recentGames.some((game) => game.status === "COMPLETED" || game.status === "DRAW");
+  const hasHistory = trajectory.length > 0;
 
   if (!hasHistory) {
     return (
@@ -101,6 +100,17 @@ export const RatingChart = memo(function RatingChart({ recentGames, userRating, 
           <span className="text-[9px] font-medium text-cc-text-muted">
             Last {trajectory.length} matches
           </span>
+        </div>
+        <div className="flex gap-2">
+          {["7d", "30d", "1y", "all"].map(tf => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              className={`text-xs px-2 py-1 rounded font-bold uppercase tracking-wider ${timeframe === tf ? 'bg-cc-bg-hover text-cc-text-primary' : 'text-cc-text-muted hover:text-cc-text-secondary'}`}
+            >
+              {tf}
+            </button>
+          ))}
         </div>
       </div>
 

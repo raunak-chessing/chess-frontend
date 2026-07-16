@@ -17,6 +17,7 @@ interface GameControlsProps {
   onReset: () => void;
   onReturnHome: () => void;
   onResign: () => void;
+  onReviewGame?: () => void;
 }
 
 const GameControls = memo(function GameControls({
@@ -33,6 +34,7 @@ const GameControls = memo(function GameControls({
   onReset,
   onReturnHome,
   onResign,
+  onReviewGame,
 }: GameControlsProps) {
   const [showOptionsPopover, setShowOptionsPopover] = useState(false);
 
@@ -84,6 +86,16 @@ const GameControls = memo(function GameControls({
         >
           •••
         </button>
+
+        {isGameOver && onReviewGame && (
+          <button
+            onClick={onReviewGame}
+            title="Game Review"
+            className="w-14 h-14 rounded-xl font-extrabold text-xl flex items-center justify-center border transition-all duration-300 shadow-[0_4px_0_var(--cc-accent-green-dark)] cursor-pointer select-none bg-[var(--cc-accent-green)] border-[var(--cc-accent-green-dark)] text-white hover:brightness-110 active:translate-y-[4px] active:shadow-none"
+          >
+            📊
+          </button>
+        )}
 
         <button
           onClick={onReturnHome}

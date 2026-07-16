@@ -2,17 +2,21 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { Users } from 'lucide-react';
+import { useSocialStore } from "@/features/social/store/socialStore";
 
 const NAV_LINKS = [
   { href: "/", label: "Home", icon: "🏠" },
   { href: "/play", label: "Play", icon: "⚡" },
-  { href: "/play/puzzles", label: "Puzzles", icon: "🧩" },
+  { href: "/puzzles", label: "Puzzles", icon: "🧩" },
+  { href: "/tournaments", label: "Tournaments", icon: "🏆" },
+  { href: "/studies", label: "Studies", icon: "📚" },
   { href: "/learn", label: "Learn", icon: "📖" },
 ] as const;
 
 function isExactActiveLink(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
-  if (href === "/play") return pathname.startsWith("/play") && pathname !== "/play/puzzles";
+  if (href === "/play") return pathname.startsWith("/play");
   return pathname.startsWith(href);
 }
 
@@ -20,6 +24,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
+  const { toggleSidebar } = useSocialStore();
 
   return (
     <nav className="sticky top-0 z-50 w-full flex items-center justify-between px-4 md:px-6 h-14 border-b bg-[var(--cc-bg-card)] border-[var(--cc-border)]">
@@ -62,6 +67,13 @@ export default function Navbar() {
           <div className="h-8 w-20 rounded animate-pulse bg-[var(--cc-bg-input)]" />
         ) : session ? (
           <div className="flex items-center gap-3">
+            <button
+              onClick={toggleSidebar}
+              className="p-1.5 rounded-md transition-colors text-[var(--cc-text-secondary)] hover:text-[var(--cc-green)] hover:bg-[var(--cc-bg-hover)]"
+              title="Friends"
+            >
+              <Users size={20} />
+            </button>
             <button
               onClick={() => router.push("/profile")}
               className="flex items-center gap-2.5 cursor-pointer group px-2 py-1 rounded-md transition-colors bg-transparent hover:bg-[var(--cc-bg-hover)]"

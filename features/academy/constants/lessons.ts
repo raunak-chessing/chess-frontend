@@ -11,6 +11,7 @@ export interface AcademyLesson {
   hints: string[];
   prompts: string[];
   arrows?: string[][][];
+  videoId?: string;
 }
 
 export const ACADEMY_LESSONS: AcademyLesson[] = [
@@ -35,6 +36,7 @@ export const ACADEMY_LESSONS: AcademyLesson[] = [
     hints: ["Slide the Rook straight up the a-file to a8, claiming full vertical control of the file."],
     prompts: ["Move the Rook to a8 to control the entire a-file."],
     arrows: [[["a1", "a8", "green"]]],
+    videoId: "U2huOuKI7h0",
   },
   {
     id: "b02",
@@ -218,6 +220,7 @@ export const ACADEMY_LESSONS: AcademyLesson[] = [
     hints: ["Jump the Knight to c6, forking the King on e8 and the Rook on a8."],
     prompts: ["Fork the King and Rook with Nc6!"],
     arrows: [[["e5", "c6", "green"], ["c6", "e8", "red"], ["c6", "a8", "red"]]],
+    videoId: "U2huOuKI7h0",
   },
   {
     id: "t02",

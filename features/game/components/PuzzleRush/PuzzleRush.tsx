@@ -1,8 +1,8 @@
 import { memo, useState, useEffect, useCallback } from "react";
 import { Chess } from "chess.js";
 import { Board } from "../Board";
-import { CHESS_PUZZLES, ChessPuzzle } from "../../constants/puzzles";
 import { formatTime, playSound } from "../../../../lib/utils";
+import { usePuzzlesStore } from "../../../puzzles/store/puzzlesStore";
 
 interface PuzzleRushProps {
   onReturnHome: () => void;
@@ -18,18 +18,13 @@ export const PuzzleRush = memo(function PuzzleRush({ onReturnHome }: PuzzleRushP
   const [statusMessage, setStatusMessage] = useState("");
   const [statusColor, setStatusColor] = useState("text-cc-text-primary");
 
-  const puzzle: ChessPuzzle | undefined = CHESS_PUZZLES[puzzleIndex];
+  const { rushBatch, fetchRushBatch, currentRushIndex, nextRushPuzzle, resetRush } = usePuzzlesStore();
+  const puzzle = rushBatch[currentRushIndex];
 
   // Local chess instance for validating moves
-  const [localChess, setLocalChess] = useState<Chess>(() => {
-    const c = new Chess();
-    if (puzzle) c.load(puzzle.fen);
-    return c;
-  });
+  const [localChess, setLocalChess] = useState<Chess>(new Chess());
 
-  const [boardPosition, setBoardPosition] = useState<string>(() => {
-    return puzzle ? puzzle.fen : "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-  });
+  const [boardPosition, setBoardPosition] = useState<string>("start");
 
   // Timer countdown hook
   useEffect(() => {
@@ -49,22 +44,29 @@ export const PuzzleRush = memo(function PuzzleRush({ onReturnHome }: PuzzleRushP
 
   // Sync FEN when starting a new puzzle
   const loadPuzzle = useCallback((idx: number) => {
-    const p = CHESS_PUZZLES[idx];
+    const p = rushBatch[idx];
     if (!p) {
-      setIsGameOver(true);
+      if (rushBatch.length > 0) setIsGameOver(true);
       return;
     }
     const c = new Chess(p.fen);
     setLocalChess(c);
     setBoardPosition(p.fen);
     setCurrentMoveIdx(0);
-    setStatusMessage(p.description);
+    setStatusMessage("Puzzle " + p.id);
     setStatusColor("text-cc-text-primary");
-  }, []);
+  }, [rushBatch]);
 
   useEffect(() => {
-    loadPuzzle(puzzleIndex);
-  }, [puzzleIndex, loadPuzzle]);
+    // Initial fetch
+    if (rushBatch.length === 0 && !isGameOver) {
+      fetchRushBatch();
+    }
+  }, [rushBatch.length, isGameOver, fetchRushBatch]);
+
+  useEffect(() => {
+    loadPuzzle(currentRushIndex);
+  }, [currentRushIndex, loadPuzzle]);
 
   const handlePieceDrop = useCallback((source: string, target: string): boolean => {
     if (isGameOver || !puzzle) return false;
@@ -92,10 +94,7 @@ export const PuzzleRush = memo(function PuzzleRush({ onReturnHome }: PuzzleRushP
 
             // Brief delay then load next puzzle
             setTimeout(() => {
-              setPuzzleIndex((prev) => {
-                const nextIndex = (prev + 1) % CHESS_PUZZLES.length;
-                return nextIndex;
-              });
+              nextRushPuzzle();
             }, 800);
           } else {
             // Wait for next move
@@ -132,13 +131,13 @@ export const PuzzleRush = memo(function PuzzleRush({ onReturnHome }: PuzzleRushP
   }, [isGameOver, puzzle, currentMoveIdx, localChess]);
 
   const handleRestart = useCallback(() => {
-    setPuzzleIndex(0);
+    resetRush();
     setScore(0);
     setLives(3);
     setTimeRemaining(180);
     setIsGameOver(false);
-    loadPuzzle(0);
-  }, [loadPuzzle]);
+    fetchRushBatch();
+  }, [fetchRushBatch, resetRush]);
 
   return (
     <div className="flex flex-col gap-5 w-full max-w-[1100px] mx-auto p-4 bg-cc-bg-page rounded-3xl border border-cc-border-light shadow-2xl">
@@ -198,7 +197,7 @@ export const PuzzleRush = memo(function PuzzleRush({ onReturnHome }: PuzzleRushP
           <div className="w-full max-w-[620px] aspect-square relative rounded-2xl overflow-hidden border border-cc-border shadow-xl">
             <Board
               position={boardPosition}
-              flipped={puzzle?.turn === "b"}
+              flipped={puzzle?.fen.includes(" b ")}
               viewMode="2d"
               onPieceDrop={handlePieceDrop}
               squareStyles={{}}
@@ -246,7 +245,7 @@ export const PuzzleRush = memo(function PuzzleRush({ onReturnHome }: PuzzleRushP
             {puzzle ? (
               <div className="flex-1 flex flex-col justify-center gap-3 py-4">
                 <span className="text-sm font-serif font-extrabold text-cc-text-primary leading-tight">
-                  Puzzle #{puzzleIndex + 1}: {puzzle.title}
+                  Puzzle #{currentRushIndex + 1}
                 </span>
                 <p className={`text-xs leading-relaxed transition-all duration-300 ${statusColor}`}>
                   {statusMessage}
