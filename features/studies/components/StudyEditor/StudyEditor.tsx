@@ -153,6 +153,7 @@ export function StudyEditor({ studyId }: { studyId: string }) {
         <div className="flex flex-col lg:flex-row gap-6 items-start h-full">
           <div className="w-full max-w-[600px] aspect-square flex-shrink-0">
             <Chessboard
+              // @ts-ignore
               position={game.fen()}
               onPieceDrop={onDrop}
               boardOrientation="white"

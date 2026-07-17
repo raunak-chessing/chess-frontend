@@ -2,7 +2,7 @@ import { memo, useState, useEffect, useCallback } from "react";
 import { Chess } from "chess.js";
 import { Board } from "@/features/game/components/Board";
 import { playSound } from "@/lib/utils";
-import { Puzzle } from "../types/puzzles.types";
+import { Puzzle } from "../../api/puzzlesApi";
 
 interface PuzzleSolverProps {
   puzzle: Puzzle | null;

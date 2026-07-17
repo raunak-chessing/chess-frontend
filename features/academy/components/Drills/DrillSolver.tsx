@@ -3,7 +3,7 @@
 import { memo, useEffect, useRef, useState, useCallback } from "react";
 import { Chess } from "chess.js";
 import { Board } from "@/features/game/components/Board";
-import { Drill } from "../../../constants/drills";
+import { Drill } from "../../constants/drills";
 import Link from "next/link";
 
 interface DrillSolverProps {

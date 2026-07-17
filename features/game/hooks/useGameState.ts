@@ -155,7 +155,7 @@ export interface GameActions {
   setFlipped: (val: boolean | ((prev: boolean) => boolean)) => void;
   resetGame: (flipBoard?: boolean) => void;
   resetGameWithVariant: (v: GameVariant, flipBoard?: boolean) => void;
-  applyMove: (from: string, to: string) => boolean;
+  applyMove: (fromOrSan: string, to?: string) => boolean;
   applyUndo: () => void;
   setViewMoveIndex: (index: number | null) => void;
   setVariant: (variant: GameVariant) => void;
@@ -253,13 +253,18 @@ export function useGameState(): GameState & GameActions {
   );
 
   const applyMove = useCallback(
-    (from: string, to: string): boolean => {
+    (fromOrSan: string, to?: string): boolean => {
       try {
-        const move = game.move({ from, to, promotion: "q" });
+        let move;
+        if (to) {
+          move = game.move({ from: fromOrSan, to, promotion: "q" });
+        } else {
+          move = game.move(fromOrSan);
+        }
         if (move) {
           setFen(game.fen());
           setSelectedSquare("");
-          setLastMove({ from, to });
+          setLastMove({ from: move.from, to: move.to });
           setViewMoveIndex(null);
           playMoveSound(move, game.inCheck());
 

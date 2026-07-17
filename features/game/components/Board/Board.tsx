@@ -183,6 +183,7 @@ const Board = memo(function Board({
 
       <div className="w-full h-full rounded shadow-inner border border-cc-border inner-chessboard-grid-container">
         <Chessboard
+          // @ts-ignore
           position={position}
           onPieceDrop={handlePieceDrop}
           boardOrientation={flipped ? "black" : "white"}

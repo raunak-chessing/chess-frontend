@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuthStore } from "@/features/auth/store/authStore";
+import { authClient } from "@/lib/auth-client";
 import { usePuzzleBattleSocket } from "../../../features/puzzles/hooks/usePuzzleBattleSocket";
 import { PuzzleSolver } from "../../../features/puzzles/components/PuzzleSolver";
 import { StrikeTracker } from "../../../features/puzzles/components/StrikeTracker";
@@ -9,7 +9,8 @@ import Link from "next/link";
 import { Loader2 } from "lucide-react";
 
 export default function PuzzleBattlePage() {
-  const { user } = useAuthStore();
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
   
   const {
     inQueue,
@@ -23,7 +24,7 @@ export default function PuzzleBattlePage() {
     leaveQueue,
     puzzleSolved,
     puzzleFailed,
-  } = usePuzzleBattleSocket(user?.id || "", user?.ratingPuzzle || 1000, user?.name || "Guest");
+  } = usePuzzleBattleSocket(user?.id || "", (user as any)?.ratingPuzzle || 1000, user?.name || "Guest");
 
   const [currentPuzzleIndex, setCurrentPuzzleIndex] = useState(0);
   const [countdown, setCountdown] = useState<number | null>(null);
