@@ -221,3 +221,35 @@ input:-webkit-autofill:active {
   transition: background-color 5000s ease-in-out 0s;
 }
 .blindfold-mode [data-piece] { opacity: 0 !important; cursor: pointer; }
+
+/* ===== Puzzle Battle Animations ===== */
+
+@keyframes battle-pop {
+  0% { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+  60% { transform: scale(1.15) rotate(2deg); opacity: 1; }
+  80% { transform: scale(0.96) rotate(-1deg); }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+
+@keyframes battle-result-in {
+  0% { transform: translateY(24px) scale(0.96); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+@keyframes battle-vs-pulse {
+  0%, 100% { filter: drop-shadow(0 0 6px rgba(232, 169, 62, 0.5)); transform: scale(1); }
+  50% { filter: drop-shadow(0 0 18px rgba(232, 169, 62, 0.9)); transform: scale(1.12); }
+}
+
+@keyframes battle-countdown {
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  75% { transform: scale(0.97); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes battle-float-up {
+  0% { transform: translateY(0) scale(1); opacity: 1; }
+  80% { transform: translateY(-120px) scale(1.2); opacity: 0.9; }
+  100% { transform: translateY(-180px) scale(0.8); opacity: 0; }
+}

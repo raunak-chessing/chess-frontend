@@ -12,6 +12,7 @@ const GAME_MODES = [
     title: "Play Online",
     description: "Play vs someone at your level",
     accent: true,
+    accentClass: "",
   },
   {
     href: "/play/computer",
@@ -19,6 +20,7 @@ const GAME_MODES = [
     title: "Play Computer",
     description: "Play vs customizable training bots",
     accent: false,
+    accentClass: "",
   },
   {
     href: "/play/local",
@@ -26,6 +28,7 @@ const GAME_MODES = [
     title: "Play a Friend",
     description: "Play local PvP on one board",
     accent: false,
+    accentClass: "",
   },
   {
     href: "/play/puzzles",
@@ -33,6 +36,15 @@ const GAME_MODES = [
     title: "Puzzle Rush",
     description: "Solve puzzles under a 3-minute timer",
     accent: false,
+    accentClass: "",
+  },
+  {
+    href: "/play/battle",
+    icon: "⚔️",
+    title: "Puzzle Battle",
+    description: "Race an opponent — same puzzle, first to solve wins",
+    accent: false,
+    accentClass: "border-[var(--cc-accent-gold)]/40 hover:border-[var(--cc-accent-gold)] hover:bg-[var(--cc-accent-gold)]/5",
   },
   {
     href: "/learn",
@@ -40,8 +52,10 @@ const GAME_MODES = [
     title: "Chess Academy",
     description: "Learn tactics, openings, and strategies",
     accent: false,
+    accentClass: "",
   },
 ] as const;
+
 
 export default function Home() {
   const router = useRouter();
@@ -85,9 +99,9 @@ export default function Home() {
                   key={mode.href}
                   onClick={() => router.push(mode.href)}
                   className={`w-full flex items-center justify-start gap-4 px-5 py-3.5 rounded-xl transition-all cursor-pointer shadow-md hover:-translate-y-0.5 active:translate-y-0 border ${
-                    mode.accent 
-                      ? "bg-[var(--cc-green)] border-[var(--cc-green)] text-white hover:bg-[var(--cc-green-hover)]" 
-                      : "bg-[var(--cc-bg-card)] border-[var(--cc-border)] text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)] hover:border-[var(--cc-border-light)]"
+                    mode.accent
+                      ? "bg-[var(--cc-green)] border-[var(--cc-green)] text-white hover:bg-[var(--cc-green-hover)]"
+                      : `bg-[var(--cc-bg-card)] border-[var(--cc-border)] text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)] hover:border-[var(--cc-border-light)] ${mode.accentClass}`
                   }`}
                   id={`home-mode-${mode.href.split("/").pop()}`}
                 >
@@ -102,8 +116,14 @@ export default function Home() {
                       {mode.description}
                     </span>
                   </div>
+                  {mode.href === "/play/battle" && (
+                    <span className="ml-auto text-[9px] font-black uppercase tracking-wider text-[var(--cc-accent-gold)] bg-[var(--cc-accent-gold)]/10 border border-[var(--cc-accent-gold)]/30 px-1.5 py-0.5 rounded-full shrink-0">
+                      NEW
+                    </span>
+                  )}
                 </button>
               ))}
+
             </div>
           </div>
         </div>
