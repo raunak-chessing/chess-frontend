@@ -4,6 +4,7 @@ import React from "react";
 import Chessboard from "../components/Chessboard";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
+import { QuestWidget } from "@/features/quests/components/QuestWidget";
 
 const GAME_MODES = [
   {
@@ -91,6 +92,12 @@ export default function Home() {
               >
                 Welcome back, <span className="text-[var(--cc-green)]">{session.user.name}</span>
               </p>
+            )}
+
+            {session && (
+              <div className="w-full max-w-[380px] mt-2">
+                <QuestWidget />
+              </div>
             )}
 
             <div className="flex flex-col gap-2.5 w-full max-w-[380px] mt-2">
