@@ -5,6 +5,7 @@ import Chessboard from "../components/Chessboard";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { QuestWidget } from "@/features/quests/components/QuestWidget";
+import { FactionMap } from "@/features/factions/components/FactionMap";
 
 const GAME_MODES = [
   {
@@ -133,6 +134,10 @@ export default function Home() {
 
             </div>
           </div>
+          
+          {session && (
+            <FactionMap />
+          )}
         </div>
       </div>
     </div>
