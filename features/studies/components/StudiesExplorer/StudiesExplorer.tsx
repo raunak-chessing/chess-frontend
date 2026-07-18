@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { studiesApi } from '../../api/studiesApi';
+import { studiesApi, Study } from '../../api/studiesApi';
 import { Card } from '../../../../components/ui/Card';
 import { SectionHeader } from '../../../../components/ui/SectionHeader';
 import { authClient } from '@/lib/auth-client';
@@ -11,8 +11,8 @@ import { toast } from 'react-hot-toast';
 export function StudiesExplorer() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const [studies, setStudies] = useState<any[]>([]);
-  const [myStudies, setMyStudies] = useState<any[]>([]);
+  const [studies, setStudies] = useState<Study[]>([]);
+  const [myStudies, setMyStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -68,8 +68,8 @@ export function StudiesExplorer() {
               >
                 <h3 className="font-bold text-text-primary text-lg">{study.title}</h3>
                 <div className="flex justify-between text-sm text-text-secondary">
-                  <span>{study._count.chapters} Chapters</span>
-                  <span>{new Date(study.createdAt).toLocaleDateString()}</span>
+                  <span>{study._count?.chapters || 0} Chapters</span>
+                  <span>{study.createdAt ? new Date(study.createdAt).toLocaleDateString() : 'N/A'}</span>
                 </div>
               </Card>
             ))}
@@ -88,8 +88,8 @@ export function StudiesExplorer() {
             >
               <h3 className="font-bold text-text-primary text-lg">{study.title}</h3>
               <div className="flex justify-between items-center text-sm text-text-secondary">
-                <span className="font-medium text-primary">by {study.owner.name} ({study.owner.rating})</span>
-                <span>{study._count.chapters} Chapters</span>
+                <span className="font-medium text-primary">by {study.owner?.name || 'Unknown'} ({study.owner?.rating || '?'})</span>
+                <span>{study._count?.chapters || 0} Chapters</span>
               </div>
             </Card>
           ))}

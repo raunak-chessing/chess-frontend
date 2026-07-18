@@ -61,13 +61,7 @@ const OPENINGS: OpeningVariation[] = [
   }
 ];
 
-interface MasterGame {
-  id: string;
-  winner: "white" | "black" | "draw";
-  white: { name: string; rating: number };
-  black: { name: string; rating: number };
-  year: number;
-}
+import { lichessApi, MasterGame } from "../../../../lib/lichessApi";
 
 interface OpeningExplorerProps {
   onReturnToDashboard: () => void;
@@ -105,9 +99,8 @@ export const OpeningExplorer = memo(function OpeningExplorer({ onReturnToDashboa
     const fetchGames = async () => {
       setIsLoadingGames(true);
       try {
-        const res = await fetch(`https://explorer.lichess.ovh/master?fen=${encodeURIComponent(boardPosition)}&topGames=5`);
-        const data = await res.json();
-        setMasterGames(data.topGames || []);
+        const games = await lichessApi.getTopGames(boardPosition, 5);
+        setMasterGames(games);
       } catch (err) {
         setMasterGames([]);
       } finally {

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { tournamentsApi } from '../../api/tournamentsApi';
+import { tournamentsApi, Tournament } from '../../api/tournamentsApi';
 import { Card } from '../../../../components/ui/Card';
 import { SectionHeader } from '../../../../components/ui/SectionHeader';
 import { authClient } from '@/lib/auth-client';
@@ -11,7 +11,7 @@ import { toast } from 'react-hot-toast';
 export function TournamentsList() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const [tournaments, setTournaments] = useState<any[]>([]);
+  const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -80,7 +80,7 @@ export function TournamentsList() {
               </div>
               <div className="flex flex-col items-end">
                 <span className="font-mono font-semibold text-text-primary">
-                  {new Date(tournament.startTime).toLocaleString()}
+                  {tournament.startTime ? new Date(tournament.startTime).toLocaleString() : 'TBD'}
                 </span>
                 <span className="text-sm text-primary font-bold">Join Arena &rarr;</span>
               </div>

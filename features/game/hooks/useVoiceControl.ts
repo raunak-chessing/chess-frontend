@@ -3,11 +3,34 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { toast } from "react-hot-toast";
 
-// Type definitions for Web Speech API
+interface SpeechRecognitionEvent {
+  resultIndex: number;
+  results: SpeechRecognitionResultList;
+}
+
+interface SpeechRecognitionErrorEvent {
+  error: string;
+  message?: string;
+}
+
+interface SpeechRecognitionInstance {
+  continuous: boolean;
+  interimResults: boolean;
+  lang: string;
+  onstart: (() => void) | null;
+  onresult: ((event: SpeechRecognitionEvent) => void) | null;
+  onerror: ((event: SpeechRecognitionErrorEvent) => void) | null;
+  onend: (() => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance;
+
 declare global {
   interface Window {
-    SpeechRecognition: any;
-    webkitSpeechRecognition: any;
+    SpeechRecognition: SpeechRecognitionConstructor | undefined;
+    webkitSpeechRecognition: SpeechRecognitionConstructor | undefined;
   }
 }
 
@@ -86,7 +109,7 @@ function parseVoiceToSan(transcript: string): string {
 
 export function useVoiceControl(applyMove: (move: string | { from: string; to: string; promotion?: string }) => boolean) {
   const [isListening, setIsListening] = useState(false);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionInstance | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -104,12 +127,11 @@ export function useVoiceControl(applyMove: (move: string | { from: string; to: s
 
     recognition.onstart = () => setIsListening(true);
     
-    recognition.onresult = (event: any) => {
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
       const current = event.resultIndex;
       const transcript = event.results[current][0].transcript;
       
       const san = parseVoiceToSan(transcript);
-      console.log(`Voice Command: "${transcript}" -> Parsed SAN: "${san}"`);
       
       if (san) {
         const success = applyMove(san);
@@ -121,9 +143,8 @@ export function useVoiceControl(applyMove: (move: string | { from: string; to: s
       }
     };
 
-    recognition.onerror = (event: any) => {
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
       if (event.error === 'no-speech') return;
-      console.error("Speech Recognition Error:", event.error);
       setIsListening(false);
       toast.error(`Voice error: ${event.error}`);
     };
@@ -152,8 +173,8 @@ export function useVoiceControl(applyMove: (move: string | { from: string; to: s
     } else {
       try {
         recognitionRef.current.start();
-      } catch (err) {
-        console.error(err);
+      } catch {
+        toast.error("Failed to start voice recognition.");
       }
     }
   }, [isListening]);

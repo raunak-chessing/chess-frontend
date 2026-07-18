@@ -9,25 +9,24 @@ import { Spinner } from "@/components/ui/Spinner";
 import { formatDistanceToNow } from "date-fns";
 import { getSocket } from "@/lib/socket-client";
 import { GameView } from "@/features/game";
+import { tournamentsApi, Tournament, TournamentPlayer } from "../api/tournamentsApi";
 
 export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
   
-  const [tournament, setTournament] = useState<any>(null);
+  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [isJoined, setIsJoined] = useState(false);
   const [playingMatch, setPlayingMatch] = useState(false);
 
   const fetchTournament = async () => {
     try {
-      const res = await fetch(`http://localhost:4001/api/tournaments/${tournamentId}`);
-      if (!res.ok) throw new Error("Failed to fetch tournament");
-      const data = await res.json();
+      const data = await tournamentsApi.getTournamentDetails(tournamentId);
       setTournament(data);
       if (userId) {
-        setIsJoined(data.players.some((p: any) => p.userId === userId));
+        setIsJoined(data.players?.some((p: TournamentPlayer) => p.userId === userId) ?? false);
       }
       setLoading(false);
     } catch (e) {
@@ -62,11 +61,7 @@ export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
   const handleJoin = async () => {
     if (!userId) return;
     try {
-      await fetch(`http://localhost:4001/api/tournaments/${tournamentId}/join`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
+      await tournamentsApi.joinTournament(tournamentId);
       fetchTournament();
     } catch (e) {
       console.error(e);
@@ -123,12 +118,12 @@ export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
               }`}>
                 {tournament.status.replace('_', ' ')}
               </span>
-              {tournament.status === 'UPCOMING' && (
+              {tournament.status === 'UPCOMING' && tournament.startTime && (
                 <span className="text-xs font-semibold text-cc-text-muted mt-2">
                   Starts {formatDistanceToNow(new Date(tournament.startTime), { addSuffix: true })}
                 </span>
               )}
-              {tournament.status === 'IN_PROGRESS' && (
+              {tournament.status === 'IN_PROGRESS' && tournament.endTime && (
                 <span className="text-xs font-semibold text-cc-text-muted mt-2">
                   Ends {formatDistanceToNow(new Date(tournament.endTime), { addSuffix: true })}
                 </span>
@@ -177,14 +172,14 @@ export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
                 </tr>
               </thead>
               <tbody>
-                {tournament.players.length === 0 ? (
+                {(!tournament.players || tournament.players.length === 0) ? (
                   <tr>
                     <td colSpan={4} className="p-8 text-center text-cc-text-muted font-medium">
                       No players joined yet.
                     </td>
                   </tr>
                 ) : (
-                  tournament.players.map((p: any, idx: number) => {
+                  tournament.players?.map((p: TournamentPlayer, idx: number) => {
                     const rank = p.rank || idx + 1;
                     const isMe = p.userId === userId;
                     return (

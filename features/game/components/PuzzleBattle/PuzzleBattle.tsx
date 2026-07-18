@@ -260,6 +260,7 @@ function BattleArena({
     advanceRound,
     sendEmote,
     startMatch,
+    error,
   } = usePuzzleBattle(difficulty);
 
   useEffect(() => {
@@ -274,6 +275,47 @@ function BattleArena({
   const playerIsLoserThisRound = isRoundResult && roundOutcome === "opponent";
   const opponentIsWinnerThisRound = isRoundResult && roundOutcome === "opponent";
   const opponentIsLoserThisRound = isRoundResult && roundOutcome === "player";
+
+  if (phase === "error") {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-6 w-full text-center p-8 bg-cc-bg-card border border-cc-border rounded-3xl max-w-md mx-auto my-12 shadow-2xl animate-fade-in">
+        <div className="text-5xl filter drop-shadow-[0_0_20px_rgba(232,169,62,0.4)]">🔒</div>
+        <div className="flex flex-col gap-2">
+          <h2 className="text-2xl font-bold text-cc-text-primary">
+            {error === "unauthorized" ? "Sign In to Play" : "Something went wrong"}
+          </h2>
+          <p className="text-sm text-cc-text-muted">
+            {error === "unauthorized" 
+              ? "You must be signed in to access Puzzle Battle and race against bots or other players." 
+              : "An unexpected error occurred while loading the puzzles. Please try again later."}
+          </p>
+        </div>
+        <div className="flex gap-4 w-full mt-2">
+          <button
+            onClick={onReturnHome}
+            className="flex-1 px-4 py-3 rounded-xl border border-cc-border text-sm font-bold text-cc-text-muted hover:text-cc-text-primary hover:bg-white/[0.02] transition-colors cursor-pointer"
+          >
+            Go Home
+          </button>
+          {error === "unauthorized" ? (
+            <a
+              href="/login"
+              className="flex-1 px-4 py-3 rounded-xl bg-cc-accent-gold text-cc-bg-page text-sm font-bold hover:bg-cc-accent-gold/90 transition-colors text-center cursor-pointer flex items-center justify-center"
+            >
+              Sign In
+            </a>
+          ) : (
+            <button
+              onClick={onRematch}
+              className="flex-1 px-4 py-3 rounded-xl bg-cc-accent-blue text-white text-sm font-bold hover:opacity-90 transition-colors cursor-pointer"
+            >
+              Try Again
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (phase === "matchmaking") {
     return (

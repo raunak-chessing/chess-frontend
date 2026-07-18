@@ -2,7 +2,8 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { tournamentsApi } from '../../api/tournamentsApi';
+import { SectionHeader } from '../../../../components/ui/SectionHeader';
+import { tournamentsApi, Tournament, TournamentPlayer } from '../../api/tournamentsApi';
 import { getSocket } from '@/lib/socket-client';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
@@ -10,7 +11,7 @@ import { toast } from 'react-hot-toast';
 export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const [tournament, setTournament] = useState<any>(null);
+  const [tournament, setTournament] = useState<Tournament | null>(null);
   const [loading, setLoading] = useState(true);
   const [isJoined, setIsJoined] = useState(false);
   const [isQueuing, setIsQueuing] = useState(false);
@@ -31,8 +32,8 @@ export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
     tournamentsApi.getTournamentDetails(tournamentId)
       .then(data => {
         setTournament(data);
-        if (session?.user) {
-          const joined = data.players.some((p: any) => p.user.id === session.user.id);
+        if (session?.user && data.players) {
+          const joined = data.players.some((p: TournamentPlayer) => p.user?.id === session.user.id) ?? false;
           setIsJoined(joined);
         }
       })
@@ -51,6 +52,7 @@ export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
       toast.error('You must be logged in to play');
       return;
     }
+    if (!tournament) return;
     
     if (!isJoined) {
       try {
@@ -85,7 +87,7 @@ export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
           <h2 className="font-bold text-lg text-text-primary">Standings</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
-          {tournament.players.map((player: any, idx: number) => (
+          {tournament.players?.map((player: TournamentPlayer, idx: number) => (
             <div key={player.id} className={`flex items-center justify-between p-3 border-b border-surface-highlight ${player.user.id === session?.user?.id ? 'bg-bg-hover' : ''}`}>
               <div className="flex items-center gap-3">
                 <span className="font-bold text-text-secondary w-5 text-right">{idx + 1}</span>
@@ -100,7 +102,7 @@ export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
               </div>
             </div>
           ))}
-          {tournament.players.length === 0 && (
+          {(!tournament.players || tournament.players.length === 0) && (
             <div className="p-4 text-center text-sm text-text-secondary">No players yet.</div>
           )}
         </div>
@@ -110,7 +112,7 @@ export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
       <div className="flex-1 flex flex-col gap-6">
         <div className="bg-surface border border-surface-highlight rounded-lg p-8 text-center flex flex-col items-center justify-center">
           <div className="text-4xl mb-4">🏆</div>
-          <h1 className="text-3xl font-extrabold text-text-primary mb-2">{tournament.name}</h1>
+          <h1 className="text-2xl font-black font-serif text-text-primary">{tournament?.name}</h1>
           <div className="text-lg text-text-secondary mb-8">
             {tournament.timeControl} Arena • {tournament.status}
           </div>

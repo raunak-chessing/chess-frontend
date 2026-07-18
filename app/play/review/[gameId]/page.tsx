@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import Board from '@/features/game/components/Board/Board';
 import AIVoiceCoach from '@/features/analysis/components/AIVoiceCoach';
 import { CoachScriptLine } from '@/features/analysis/services/AudioProvider';
+import { fetchApi } from '@/lib/api-client';
 
 export default function AIReviewPage() {
   const params = useParams();
@@ -16,8 +17,7 @@ export default function AIReviewPage() {
   useEffect(() => {
     async function fetchScript() {
       try {
-        const res = await fetch(`http://localhost:4001/api/analysis/${gameId}/coach`);
-        const data = await res.json();
+        const data = await fetchApi(`/api/analysis/${gameId}/coach`);
         setScript(data.script || []);
         if (data.script && data.script.length > 0) {
           setCurrentFen(data.script[0].fen);

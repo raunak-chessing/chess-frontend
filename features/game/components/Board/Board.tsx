@@ -1,7 +1,9 @@
 "use client";
 
-import React, { memo, useState, useEffect, useCallback, useRef } from "react";
-import { Chessboard } from "react-chessboard";
+import React, { memo, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import dynamic from "next/dynamic";
+const Chessboard = dynamic(() => import("react-chessboard").then(mod => mod.Chessboard), { ssr: false });
+import type { ChessboardOptions } from "react-chessboard";
 import type { BoardProps } from "./Board.types";
 import { BOARD_THEME } from "../../constants/boardTheme";
 
@@ -11,15 +13,50 @@ const Board = memo(function Board({
   viewMode = "3d",
   onPieceDrop,
   squareStyles,
-  premove,
   onPremoveClear,
   isDraggablePiece,
   onSquareClick,
 }: BoardProps) {
 
-  const handlePieceDrop = ({ sourceSquare, targetSquare, piece }: any): boolean => {
-    return onPieceDrop(sourceSquare, targetSquare, piece);
-  };
+  const handlePieceDrop = useCallback<NonNullable<ChessboardOptions["onPieceDrop"]>>(
+    ({ piece, sourceSquare, targetSquare }) => {
+      return onPieceDrop(sourceSquare, targetSquare ?? "", piece.pieceType);
+    },
+    [onPieceDrop],
+  );
+
+  const chessboardOptions = useMemo<ChessboardOptions>(
+    () => ({
+      id: "main-game-board",
+      position,
+      onPieceDrop: handlePieceDrop,
+      boardOrientation: flipped ? "black" : "white",
+      darkSquareStyle: { backgroundImage: BOARD_THEME.darkSquareGradient },
+      lightSquareStyle: { backgroundImage: BOARD_THEME.lightSquareGradient },
+      boardStyle: {
+        borderRadius: "2px",
+        boxShadow: BOARD_THEME.boardShadow,
+      },
+      allowDragOffBoard: true,
+      allowDrawingArrows: true,
+      clearArrowsOnClick: true,
+      animationDurationInMs: 200,
+      showAnimations: true,
+      showNotation: false,
+      squareStyles,
+      canDragPiece: ({ piece, square }) => {
+        if (!isDraggablePiece) return true;
+        return isDraggablePiece({
+          piece: piece.pieceType,
+          sourceSquare: square ?? "",
+        });
+      },
+      onSquareClick: ({ square }) => {
+        onSquareClick?.(square);
+      },
+    }),
+    [flipped, handlePieceDrop, isDraggablePiece, onSquareClick, position, squareStyles],
+  );
 
   const handleContextMenu = useCallback((e: MouseEvent) => {
     e.preventDefault(); // Prevent native right-click menu
@@ -31,11 +68,11 @@ const Board = memo(function Board({
     return () => window.removeEventListener("contextmenu", handleContextMenu);
   }, [handleContextMenu]);
 
-  const [rotX, setRotX] = useState(32);
+  const [rotX, setRotX] = useState(0);
   const [rotZ, setRotZ] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
 
-  const dragStart = useRef({ x: 0, y: 0, rotX: 32, rotZ: 0 });
+  const dragStart = useRef({ x: 0, y: 0, rotX: 0, rotZ: 0 });
 
   useEffect(() => {
     if (viewMode === "3d") {
@@ -65,12 +102,9 @@ const Board = memo(function Board({
     };
   };
 
-  const handleMouseMove = useCallback(
-    (e: MouseEvent) => {
-      // 3D rotation dragging disabled because it breaks react-chessboard piece dragging
-    },
-    [isDragging]
-  );
+  const handleMouseMove = useCallback(() => {
+    // 3D rotation dragging disabled because it breaks react-chessboard piece dragging
+  }, []);
 
   const handleMouseUp = useCallback(() => {
     setIsDragging(false);
@@ -93,12 +127,9 @@ const Board = memo(function Board({
     };
   };
 
-  const handleTouchMove = useCallback(
-    (e: TouchEvent) => {
-      // 3D rotation dragging disabled
-    },
-    [isDragging]
-  );
+  const handleTouchMove = useCallback(() => {
+    // 3D rotation dragging disabled
+  }, []);
 
   const handleTouchEnd = useCallback(() => {
     setIsDragging(false);
@@ -141,9 +172,8 @@ const Board = memo(function Board({
       style={{
         "--board-rot-x": `${rotX}deg`,
         "--board-rot-z": `${rotZ}deg`,
-        transform: `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`,
-        transformStyle: "preserve-3d",
-        containerType: "inline-size",
+        transform: rotX === 0 && rotZ === 0 ? "none" : `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`,
+        transformStyle: rotX === 0 && rotZ === 0 ? "flat" : "preserve-3d",
       } as React.CSSProperties}
     >
       <svg className="absolute w-0 h-0 pointer-events-none" aria-hidden="true">
@@ -182,26 +212,7 @@ const Board = memo(function Board({
       </div>
 
       <div className="w-full h-full rounded shadow-inner border border-cc-border inner-chessboard-grid-container">
-        <Chessboard
-          // @ts-ignore
-          position={position}
-          onPieceDrop={handlePieceDrop}
-          boardOrientation={flipped ? "black" : "white"}
-          customDarkSquareStyle={{ backgroundImage: BOARD_THEME.darkSquareGradient }}
-          customLightSquareStyle={{ backgroundImage: BOARD_THEME.lightSquareGradient }}
-          customBoardStyle={{
-            borderRadius: "2px",
-            boxShadow: BOARD_THEME.boardShadow,
-          }}
-          allowDragOutsideBoard={true}
-          areArrowsAllowed={true}
-          clearPremovesOnRightClick={true}
-          animationDuration={200}
-          showBoardNotation={false}
-          customSquareStyles={squareStyles}
-          isDraggablePiece={isDraggablePiece || (() => true)}
-          onSquareClick={(square: any) => onSquareClick?.(square)}
-        />
+        <Chessboard options={chessboardOptions} />
       </div>
     </div>
   );

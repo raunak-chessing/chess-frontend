@@ -17,25 +17,21 @@ export const DailyPuzzleSchema = z.object({
 });
 export type DailyPuzzle = z.infer<typeof DailyPuzzleSchema>;
 
-export interface PuzzleAttemptResult {
-  newRating: number;
-  ratingChange: number;
-  success: boolean;
-}
+export const UserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  image: z.string().nullable().optional(),
+  ratingPuzzle: z.number(),
+});
+export type User = z.infer<typeof UserSchema>;
 
-export interface User {
-  id: string;
-  name: string;
-  image?: string;
-  ratingPuzzle: number;
-}
-
-export interface DailyPuzzleComment {
-  id: string;
-  content: string;
-  createdAt: string;
-  user: User;
-}
+export const DailyPuzzleCommentSchema = z.object({
+  id: z.string(),
+  content: z.string(),
+  createdAt: z.string(),
+  user: UserSchema,
+});
+export type DailyPuzzleComment = z.infer<typeof DailyPuzzleCommentSchema>;
 
 export const PuzzleResultSchema = z.object({
   newRating: z.number(),
@@ -44,22 +40,7 @@ export const PuzzleResultSchema = z.object({
 });
 export type PuzzleResult = z.infer<typeof PuzzleResultSchema>;
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
-
-async function fetchApi(path: string, options?: RequestInit) {
-  const res = await fetch(`${API_URL}${path}`, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options?.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({}));
-    throw { response: { data: error } };
-  }
-  return res.json();
-}
+import { fetchApi } from '@/lib/api-client';
 
 export const puzzlesApi = {
   getRatedPuzzle: async (): Promise<Puzzle> => {
@@ -78,14 +59,16 @@ export const puzzlesApi = {
   },
 
   getDailyPuzzleComments: async (dailyPuzzleId: string): Promise<DailyPuzzleComment[]> => {
-    return fetchApi(`/api/puzzles/daily/${dailyPuzzleId}/comments`);
+    const res = await fetchApi(`/api/puzzles/daily/${dailyPuzzleId}/comments`);
+    return z.array(DailyPuzzleCommentSchema).parse(res);
   },
 
   addDailyPuzzleComment: async (dailyPuzzleId: string, content: string): Promise<DailyPuzzleComment> => {
-    return fetchApi(`/api/puzzles/daily/${dailyPuzzleId}/comments`, {
+    const res = await fetchApi(`/api/puzzles/daily/${dailyPuzzleId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
+    return DailyPuzzleCommentSchema.parse(res);
   },
 
   getRushBatch: async (limit: number = 20): Promise<Puzzle[]> => {

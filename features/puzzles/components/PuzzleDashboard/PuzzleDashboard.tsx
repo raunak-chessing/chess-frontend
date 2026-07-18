@@ -45,7 +45,7 @@ export const PuzzleDashboard = memo(function PuzzleDashboard() {
 
         {/* Puzzle Battle */}
         <Link
-          href="/puzzles/battle"
+          href="/play/battle"
           className="flex flex-col items-start gap-4 p-6 bg-cc-bg-card border border-cc-border hover:border-blue-500 rounded-2xl transition-all duration-300 hover:-translate-y-1 shadow-lg text-left no-underline"
         >
           <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center text-2xl">

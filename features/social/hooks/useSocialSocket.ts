@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { getSocket } from '@/lib/socket-client';
 import { useSocialStore } from '../store/socialStore';
-import { toast } from 'react-hot-toast';
+import { SocialChallenge, SocialRequest } from '../api/socialApi';
+import toast from 'react-hot-toast';
 import { useRouter } from 'next/navigation';
 
 export function useSocialSocket() {
@@ -12,17 +13,17 @@ export function useSocialSocket() {
     const onUserOnline = (data: { userId: string }) => markUserOnline(data.userId);
     const onUserOffline = (data: { userId: string }) => markUserOffline(data.userId);
     
-    const onChallengeReceived = (challenge: any) => {
+    const onChallengeReceived = (challenge: SocialChallenge) => {
       addChallenge(challenge);
       toast.success(`${challenge.sender.name} challenged you to a ${challenge.timeControl} game!`);
     };
     
     const onChallengeAccepted = (data: { challengeId: string, gameId: string }) => {
       toast.success('Challenge accepted! Redirecting to game...');
-      router.push(`/play/${data.gameId}`);
+      router.push(`/play/online?gameId=${data.gameId}`);
     };
     
-    const onFriendRequestReceived = (request: any) => {
+    const onFriendRequestReceived = (request: SocialRequest) => {
       addIncomingRequest(request);
       toast.success('New friend request received!');
     };

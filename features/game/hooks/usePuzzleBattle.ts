@@ -13,7 +13,8 @@ export type BattlePhase =
   | "countdown"
   | "playing"
   | "round-result"
-  | "match-result";
+  | "match-result"
+  | "error";
 
 export interface Emote {
   id: string;
@@ -55,6 +56,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
   const [roundHistory, setRoundHistory] = useState<RoundRecord[]>([]);
   const [roundTimeMs, setRoundTimeMs] = useState(0);
   const [emotes, setEmotes] = useState<Emote[]>([]);
+  const [error, setError] = useState<"unauthorized" | "unknown" | null>(null);
 
   const [playerChess, setPlayerChess] = useState<Chess>(new Chess());
   const [playerFen, setPlayerFen] = useState("start");
@@ -83,10 +85,24 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
     roundWinner,
     opponentEmote,
     opponentDisconnected,
+    battleEnded,
     clearOpponentMove,
     clearRoundWinner,
     clearOpponentEmote,
   } = usePuzzleBattleSocket();
+
+  const triggerOpponentEmote = useCallback((emoji: string) => {
+    const emote: Emote = {
+      id: `opp-${Date.now()}-${Math.random()}`,
+      emoji,
+      fromOpponent: true,
+      timestamp: Date.now(),
+    };
+    setEmotes((prev) => [...prev, emote]);
+    setTimeout(() => {
+      setEmotes((prev) => prev.filter((e) => e.id !== emote.id));
+    }, 3500);
+  }, []);
 
   const clearTimers = useCallback(() => {
     if (opponentTimerRef.current) {
@@ -142,31 +158,44 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
   // Online Match Found Effect
   useEffect(() => {
     if (isOnline && phase === "matchmaking" && matchData) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setPuzzles(matchData.puzzles);
       // Find opponent
       const oppKey = Object.keys(matchData.players).find(key => key !== socketId);
       if (oppKey) {
         const opp = matchData.players[oppKey];
+         
         setOpponentLabel(opp.name);
+         
         setOpponentElo(opp.rating);
       } else {
+         
         setOpponentLabel("Opponent");
       }
       
+       
       setPhase("countdown");
+       
       setCountdown(3);
+       
       setPlayerScore(0);
+       
       setOpponentScore(0);
+       
       setRoundIndex(0);
+       
       setRoundHistory([]);
+       
       setMatchOutcome(null);
 
       let c = 3;
       const interval = setInterval(() => {
         c -= 1;
+         
         setCountdown(c);
         if (c <= 0) {
           clearInterval(interval);
+           
           setPhase("playing");
         }
       }, 1000);
@@ -177,6 +206,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
   // Online Opponent Move Effect
   useEffect(() => {
     if (isOnline && phase === "playing" && opponentMove) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setOpponentFen(opponentMove.fen);
       clearOpponentMove();
     }
@@ -199,41 +229,69 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
   // Online Opponent Emote Effect
   useEffect(() => {
     if (isOnline && opponentEmote) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       triggerOpponentEmote(opponentEmote);
       clearOpponentEmote();
     }
-  }, [isOnline, opponentEmote, clearOpponentEmote]);
+  }, [isOnline, opponentEmote, clearOpponentEmote, triggerOpponentEmote]);
 
   // Online Disconnect Effect
   useEffect(() => {
     if (isOnline && opponentDisconnected && phase !== "match-result") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMatchOutcome("player");
+       
       setPhase("match-result");
     }
   }, [isOnline, opponentDisconnected, phase]);
 
+  // Online Battle Ended Effect
+  useEffect(() => {
+    if (isOnline && battleEnded && phase !== "match-result") {
+      let isPlayerWinner = false;
+      if (matchData && socketId && matchData.players[socketId]) {
+         isPlayerWinner = matchData.players[socketId].id === battleEnded.winnerId;
+      }
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setMatchOutcome(isPlayerWinner ? "player" : "opponent");
+       
+      setPhase("match-result");
+    }
+  }, [isOnline, battleEnded, phase, matchData, socketId]);
+
   const scheduleOpponent = useCallback(
     (puzzle: Puzzle) => {
       if (isOnline || !config) return;
-      const delay = randomDelay(config.minMs, config.maxMs);
+      const totalDelay = randomDelay(config.minMs, config.maxMs);
+      const moveCount = puzzle.moves.length;
+      const delayPerMove = totalDelay / moveCount;
 
-      opponentTimerRef.current = setTimeout(() => {
+      let currentMoveIndex = 0;
+      const chess = new Chess(puzzle.fen);
+
+      const playNextMove = () => {
         if (phase !== "playing") return;
 
-        const elapsed = Date.now() - roundStartTime.current;
-
-        const chess = new Chess(puzzle.fen);
-        for (const move of puzzle.moves) {
-          const from = move.slice(0, 2);
-          const to = move.slice(2, 4);
-          chess.move({ from, to, promotion: "q" });
-        }
+        const m = puzzle.moves[currentMoveIndex];
+        const from = m.slice(0, 2);
+        const to = m.slice(2, 4);
+        const promotion = m.length > 4 ? m[4] : undefined;
+        
+        chess.move({ from, to, promotion });
         setOpponentFen(chess.fen());
+        currentMoveIndex++;
 
-        setTimeout(() => {
-          resolveRound("opponent", elapsed + 5000, elapsed);
-        }, 600);
-      }, delay);
+        if (currentMoveIndex < moveCount) {
+          opponentTimerRef.current = setTimeout(playNextMove, delayPerMove);
+        } else {
+          const elapsed = Date.now() - roundStartTime.current;
+          setTimeout(() => {
+            resolveRound("opponent", elapsed + 5000, elapsed);
+          }, 600);
+        }
+      };
+
+      opponentTimerRef.current = setTimeout(playNextMove, delayPerMove);
     },
     [config, phase, resolveRound, isOnline]
   );
@@ -258,29 +316,60 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
     setRoundIndex(0);
     setRoundHistory([]);
     setMatchOutcome(null);
+    setError(null);
 
-    const batch = await puzzlesApi.getRushBatch(TOTAL_ROUNDS + 2);
-    setPuzzles(batch);
-    if (config) {
-      setOpponentLabel(config.label);
-      setOpponentElo(config.elo);
-    }
-
-    let c = 3;
-    const interval = setInterval(() => {
-      c -= 1;
-      setCountdown(c);
-      if (c <= 0) {
-        clearInterval(interval);
-        setPhase("playing");
+    try {
+      const batch = await puzzlesApi.getRushBatch(TOTAL_ROUNDS + 2);
+      setPuzzles(batch);
+      if (config) {
+        setOpponentLabel(config.label);
+        setOpponentElo(config.elo);
       }
-    }, 1000);
+
+      let c = 3;
+      const interval = setInterval(() => {
+        c -= 1;
+        setCountdown(c);
+        if (c <= 0) {
+          clearInterval(interval);
+          setPhase("playing");
+        }
+      }, 1000);
+    } catch (err: unknown) {
+      let is401 = false;
+      if (err && typeof err === "object" && "status" in err) {
+        if ((err as { status: unknown }).status === 401) {
+          is401 = true;
+        }
+      }
+      if (err && typeof err === "object" && "response" in err) {
+        const response = (err as { response: unknown }).response;
+        if (response && typeof response === "object" && "data" in response) {
+          const data = (response as { data: unknown }).data;
+          if (data && typeof data === "object" && "statusCode" in data) {
+            if ((data as { statusCode: unknown }).statusCode === 401) {
+              is401 = true;
+            }
+          }
+        }
+      }
+
+      if (is401) {
+        setError("unauthorized");
+      } else {
+        setError("unknown");
+      }
+      setPhase("error");
+    }
   }, [isOnline, joinQueue, config]);
 
   useEffect(() => {
     if (phase === "playing" && currentPuzzle) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       loadRound(currentPuzzle);
+       
       scheduleOpponent(currentPuzzle);
+       
       startRoundTimer();
     }
     return clearTimers;
@@ -321,14 +410,17 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
       }
 
       const expectedMove = currentPuzzle.moves[playerMoveIdx];
+      const expectedFromTo = expectedMove.slice(0, 4);
+      const expectedPromotion = expectedMove.length > 4 ? expectedMove[4] : undefined;
       const moveStr = `${source}${target}`;
 
-      if (moveStr !== expectedMove) {
+      if (moveStr !== expectedFromTo) {
         playSound("/sounds/check.mp3");
         const chess = new Chess(currentPuzzle.fen);
         for (let i = 0; i < playerMoveIdx; i++) {
           const m = currentPuzzle.moves[i];
-          chess.move({ from: m.slice(0, 2), to: m.slice(2, 4), promotion: "q" });
+          const promotion = m.length > 4 ? m[4] : undefined;
+          chess.move({ from: m.slice(0, 2), to: m.slice(2, 4), promotion });
         }
         setPlayerChess(chess);
         setPlayerFen(chess.fen());
@@ -337,7 +429,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
       }
 
       try {
-        const move = playerChess.move({ from: source, to: target, promotion: "q" });
+        const move = playerChess.move({ from: source, to: target, promotion: expectedPromotion });
         if (!move) return false;
 
         const nextFen = playerChess.fen();
@@ -353,7 +445,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
         if (nextIdx >= currentPuzzle.moves.length) {
           const elapsed = Date.now() - roundStartTime.current;
           if (isOnline) {
-            sendPuzzleSolved(elapsed);
+            sendPuzzleSolved(elapsed, roundIndex);
           } else {
             resolveRound("player", elapsed, (config?.maxMs ?? 5000) + 1000);
           }
@@ -366,7 +458,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
         return false;
       }
     },
-    [phase, currentPuzzle, playerMoveIdx, playerChess, roundOutcome, isOnline, sendMove, sendPuzzleSolved, resolveRound, config]
+    [phase, currentPuzzle, playerMoveIdx, playerChess, roundOutcome, isOnline, sendMove, sendPuzzleSolved, resolveRound, config, roundIndex]
   );
 
   const sendEmote = useCallback((emoji: string) => {
@@ -385,18 +477,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
     }, 3500);
   }, [isOnline, sendSocketEmote]);
 
-  const triggerOpponentEmote = useCallback((emoji: string) => {
-    const emote: Emote = {
-      id: `opp-${Date.now()}-${Math.random()}`,
-      emoji,
-      fromOpponent: true,
-      timestamp: Date.now(),
-    };
-    setEmotes((prev) => [...prev, emote]);
-    setTimeout(() => {
-      setEmotes((prev) => prev.filter((e) => e.id !== emote.id));
-    }, 3500);
-  }, []);
+
 
   const isPlayerTurn = currentPuzzle
     ? playerMoveIdx % 2 === 0
@@ -422,6 +503,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
     opponentElo,
     totalRounds: TOTAL_ROUNDS,
     isPlayerTurn,
+    error,
     startMatch,
     handlePlayerMove,
     advanceRound,

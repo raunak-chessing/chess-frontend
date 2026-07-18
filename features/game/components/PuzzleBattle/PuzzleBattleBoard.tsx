@@ -1,7 +1,10 @@
 "use client";
 
-import { memo } from "react";
-import { Chessboard } from "react-chessboard";
+import { memo, useState, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
+const Chessboard = dynamic(() => import("react-chessboard").then(mod => mod.Chessboard), { ssr: false });
+import type { ChessboardOptions } from "react-chessboard";
+import { Chess, Square } from "chess.js";
 import { BOARD_THEME } from "../../constants/boardTheme";
 
 interface PuzzleBattleBoardProps {
@@ -27,6 +30,70 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
   elo,
   avatar,
 }: PuzzleBattleBoardProps) {
+  const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
+
+  const activeChess = useMemo(() => {
+    try {
+      return new Chess(fen);
+    } catch {
+      return null;
+    }
+  }, [fen]);
+
+  const squareStyles = useMemo(() => {
+    const styles: Record<string, React.CSSProperties> = {};
+    if (selectedSquare && activeChess) {
+      styles[selectedSquare] = { background: "rgba(255, 255, 0, 0.38)" };
+
+      try {
+        const moves = activeChess.moves({
+          square: selectedSquare as Square,
+          verbose: true,
+        });
+        moves.forEach((m) => {
+          const isCapture = activeChess.get(m.to as Square);
+          styles[m.to] = {
+            background: isCapture
+              ? "radial-gradient(circle, transparent 55%, rgba(0, 0, 0, 0.25) 56%, rgba(0, 0, 0, 0.25) 68%, transparent 69%)"
+              : "radial-gradient(circle, rgba(0, 0, 0, 0.25) 24%, transparent 25%)",
+            cursor: "pointer",
+          };
+        });
+      } catch {
+        // ignore
+      }
+    }
+    return styles;
+  }, [selectedSquare, activeChess]);
+
+  const handleSquareClick = useCallback(
+    (args: { piece: unknown; square: string }) => {
+      if (isOpponent || !onPieceDrop || !activeChess) return;
+
+      const { square } = args;
+
+      if (selectedSquare === square) {
+        setSelectedSquare(null);
+        return;
+      }
+
+      if (selectedSquare) {
+        const moved = onPieceDrop(selectedSquare, square);
+        setSelectedSquare(null);
+        if (moved) return;
+      }
+
+      const piece = activeChess.get(square as Square);
+      const turn = activeChess.turn();
+      if (piece && piece.color === turn) {
+        setSelectedSquare(square);
+      } else {
+        setSelectedSquare(null);
+      }
+    },
+    [selectedSquare, activeChess, onPieceDrop, isOpponent]
+  );
+
   const borderClass = isWinner
     ? "ring-4 ring-cc-green shadow-[0_0_40px_rgba(129,182,76,0.45)]"
     : isLoser
@@ -34,6 +101,34 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
     : isOpponent
     ? "ring-2 ring-cc-border-light"
     : "ring-2 ring-cc-accent-blue shadow-[0_0_20px_rgba(91,164,207,0.2)]";
+
+  const chessboardOptions = useMemo<ChessboardOptions>(
+    () => ({
+      id: `puzzle-battle-${isOpponent ? "opponent" : "player"}`,
+      position: fen,
+      onPieceDrop: ({ sourceSquare, targetSquare }) => {
+        if (isOpponent || !onPieceDrop) return false;
+        return onPieceDrop(sourceSquare, targetSquare ?? "");
+      },
+      boardOrientation: flipped ? "black" : "white",
+      darkSquareStyle: { backgroundImage: BOARD_THEME.darkSquareGradient },
+      lightSquareStyle: { backgroundImage: BOARD_THEME.lightSquareGradient },
+      boardStyle: {
+        borderRadius: "2px",
+        boxShadow: BOARD_THEME.boardShadow,
+      },
+      allowDragging: !isOpponent,
+      animationDurationInMs: 300,
+      showAnimations: true,
+      showNotation: false,
+      allowDrawingArrows: !isOpponent,
+      squareStyles,
+      onSquareClick: ({ square }) => {
+        handleSquareClick({ piece: null, square });
+      },
+    }),
+    [fen, flipped, handleSquareClick, isOpponent, onPieceDrop, squareStyles],
+  );
 
   return (
     <div className="flex flex-col gap-3 w-full">
@@ -80,12 +175,12 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
         >
           <svg className="absolute w-0 h-0 pointer-events-none" aria-hidden="true">
             <defs>
-              <radialGradient id={`lightWoodGrad-battle-${isOpponent ? "opp" : "player"}`} cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+              <radialGradient id="lightWoodGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
                 <stop offset="0%" stopColor="#fdf0e2" />
                 <stop offset="65%" stopColor="#e5c5aa" />
                 <stop offset="100%" stopColor="#bfa18a" />
               </radialGradient>
-              <radialGradient id={`darkWoodGrad-battle-${isOpponent ? "opp" : "player"}`} cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
+              <radialGradient id="darkWoodGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
                 <stop offset="0%" stopColor="#5d554e" />
                 <stop offset="65%" stopColor="#3c342f" />
                 <stop offset="100%" stopColor="#1e1815" />
@@ -94,26 +189,7 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
           </svg>
 
           <div className="w-full h-full rounded shadow-inner border border-cc-border">
-            <Chessboard
-              // @ts-ignore
-              position={fen}
-              onPieceDrop={
-                isOpponent || !onPieceDrop
-                  ? () => false
-                  : (src: string, tgt: string) => onPieceDrop(src, tgt)
-              }
-              boardOrientation={flipped ? "black" : "white"}
-              customDarkSquareStyle={{ backgroundImage: BOARD_THEME.darkSquareGradient }}
-              customLightSquareStyle={{ backgroundImage: BOARD_THEME.lightSquareGradient }}
-              customBoardStyle={{
-                borderRadius: "2px",
-                boxShadow: BOARD_THEME.boardShadow,
-              }}
-              isDraggablePiece={isOpponent ? () => false : () => true}
-              animationDuration={300}
-              showBoardNotation={false}
-              areArrowsAllowed={!isOpponent}
-            />
+            <Chessboard options={chessboardOptions} />
           </div>
         </div>
 

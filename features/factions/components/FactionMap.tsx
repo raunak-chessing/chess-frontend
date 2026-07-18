@@ -4,9 +4,11 @@ import { useEffect, useState } from 'react';
 import { getFactions, joinFaction, Faction } from '../api/factionsApi';
 import { authClient } from '@/lib/auth-client';
 import { Swords, Shield, Skull, Globe } from 'lucide-react';
+import type { ElementType } from 'react';
+import type { ChessUser } from '@/types/auth.types';
 import toast from 'react-hot-toast';
 
-const FACTION_ICONS: Record<string, any> = {
+const FACTION_ICONS: Record<string, ElementType> = {
   'The Queen\'s Vanguard': Shield,
   'The Sicilian Syndicate': Skull,
   'The Iron Knights': Swords,
@@ -38,9 +40,9 @@ export function FactionMap() {
 
   useEffect(() => {
     fetchFactions();
-    const user = session?.user as any;
+    const user = session?.user as ChessUser | undefined;
     if (user?.factionId) {
-      setUserFactionId(user.factionId as string);
+      setUserFactionId(user.factionId);
     }
   }, [session]);
 

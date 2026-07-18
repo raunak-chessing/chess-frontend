@@ -24,7 +24,7 @@ export default function StreamerModePage() {
       setIsStreamer(true);
     }
 
-    const newSocket = io('http://localhost:4001', {
+    const newSocket = io(process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001', {
       withCredentials: true,
     });
 

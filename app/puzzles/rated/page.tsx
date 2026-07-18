@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef } from "react";
 import { usePuzzlesStore } from "../../../features/puzzles/store/puzzlesStore";
 import { PuzzleSolver } from "../../../features/puzzles/components/PuzzleSolver";
 import Link from "next/link";
@@ -8,16 +8,15 @@ import { Loader2 } from "lucide-react";
 
 export default function RatedPuzzlesPage() {
   const { currentRatedPuzzle, fetchRatedPuzzle, submitAttempt, isLoading, ratedPuzzleRatingChange } = usePuzzlesStore();
-  const [startTime, setStartTime] = useState<number>(Date.now());
+  const startTimeRef = useRef(0);
 
   useEffect(() => {
     fetchRatedPuzzle();
-    setStartTime(Date.now());
+    startTimeRef.current = Date.now();
   }, [fetchRatedPuzzle]);
 
   const handleSolve = (attempts: number) => {
-    const timeSpentMs = Date.now() - startTime;
-    // For rated, success = solved on first attempt
+    const timeSpentMs = Date.now() - startTimeRef.current;
     const success = attempts === 0;
     if (currentRatedPuzzle) {
       submitAttempt(currentRatedPuzzle.id, success, timeSpentMs);
@@ -25,10 +24,7 @@ export default function RatedPuzzlesPage() {
   };
 
   const handleFail = () => {
-    // We only submit attempt on solve or if they explicitly give up,
-    // but in rated puzzles usually a wrong move immediately impacts rating.
-    // Let's assume if they fail once, it's marked as failed for rating, but they can continue solving for practice.
-    const timeSpentMs = Date.now() - startTime;
+    const timeSpentMs = Date.now() - startTimeRef.current;
     if (currentRatedPuzzle) {
       submitAttempt(currentRatedPuzzle.id, false, timeSpentMs);
     }
@@ -36,7 +32,7 @@ export default function RatedPuzzlesPage() {
 
   const handleNext = () => {
     fetchRatedPuzzle();
-    setStartTime(Date.now());
+    startTimeRef.current = Date.now();
   };
 
   if (isLoading && !currentRatedPuzzle) {
@@ -51,7 +47,7 @@ export default function RatedPuzzlesPage() {
     <div className="flex-1 flex flex-col items-center justify-center py-8">
       <div className="flex justify-between w-full max-w-[1100px] mb-4 px-4">
         <Link href="/puzzles" className="text-zinc-400 hover:text-white transition-colors">
-          ← Back to Puzzles
+          &larr; Back to Puzzles
         </Link>
         <div className="text-xl font-bold font-serif text-white">
           Rated Training

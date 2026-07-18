@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { Users, X, Swords, UserPlus, Search } from 'lucide-react';
 import { useSocialStore } from '../../store/socialStore';
-import { socialApi } from '../../api/socialApi';
+import { socialApi, SocialUser } from '../../api/socialApi';
 import { useSocialSocket } from '../../hooks/useSocialSocket';
 import { toast } from 'react-hot-toast';
 
@@ -11,7 +11,7 @@ export function FriendsSidebar() {
   const { isSidebarOpen, toggleSidebar, friends, setFriends, onlineUsers, incomingChallenges, incomingRequests, setIncomingRequests, removeIncomingRequest } = useSocialStore();
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<SocialUser[]>([]);
   const [searching, setSearching] = useState(false);
 
   useSocialSocket();
@@ -48,8 +48,9 @@ export function FriendsSidebar() {
     try {
       await socialApi.sendChallenge(friendId, { timeControl: '10|0', colorPref: 'random' });
       toast.success('Challenge sent!');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to send challenge');
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Failed to send challenge");
     }
   };
 
@@ -65,8 +66,9 @@ export function FriendsSidebar() {
     try {
       await socialApi.sendFriendRequest(userId);
       toast.success('Friend request sent!');
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to send friend request');
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Failed to send friend request");
     }
   };
 
@@ -77,8 +79,9 @@ export function FriendsSidebar() {
       toast.success('Friend request accepted!');
       // Refresh friends list
       socialApi.getFriends().then(setFriends);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to accept friend request');
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Failed to accept request");
     }
   };
 
@@ -86,8 +89,9 @@ export function FriendsSidebar() {
     try {
       await socialApi.declineFriendRequest(requestId);
       removeIncomingRequest(requestId);
-    } catch (err: any) {
-      toast.error(err.response?.data?.message || 'Failed to decline friend request');
+    } catch (err: unknown) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Failed to decline request");
     }
   };
 

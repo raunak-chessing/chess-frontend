@@ -29,10 +29,12 @@ export function usePuzzleBattleSocket() {
   const [roundWinner, setRoundWinner] = useState<{ winnerSocketId: string; timeMs: number } | null>(null);
   const [opponentEmote, setOpponentEmote] = useState<string | null>(null);
   const [opponentDisconnected, setOpponentDisconnected] = useState(false);
+  const [battleEnded, setBattleEnded] = useState<{ winnerId: string; reason: string } | null>(null);
 
   useEffect(() => {
-    const newSocket = io("http://localhost:4001/puzzle-battle", {
-      autoConnect: true,
+    const socketUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const newSocket = io(`${socketUrl}/puzzle-battle`, {
+      autoConnect: false,
       withCredentials: true,
     });
 
@@ -63,6 +65,10 @@ export function usePuzzleBattleSocket() {
       setOpponentDisconnected(true);
     });
 
+    newSocket.on("battleEnded", (data: { winnerId: string; reason: string }) => {
+      setBattleEnded(data);
+    });
+
     return () => {
       newSocket.disconnect();
     };
@@ -70,8 +76,12 @@ export function usePuzzleBattleSocket() {
 
   const joinQueue = useCallback(() => {
     if (socket) {
+      if (!socket.connected) {
+        socket.connect();
+      }
       socket.emit("joinQueue");
       setInQueue(true);
+      setBattleEnded(null);
     }
   }, [socket]);
 
@@ -88,9 +98,9 @@ export function usePuzzleBattleSocket() {
     }
   }, [socket, roomId]);
 
-  const sendPuzzleSolved = useCallback((timeMs: number) => {
+  const sendPuzzleSolved = useCallback((timeMs: number, roundIndex: number) => {
     if (socket && roomId) {
-      socket.emit("puzzleSolved", { roomId, timeMs });
+      socket.emit("puzzleSolved", { roomId, timeMs, roundIndex });
     }
   }, [socket, roomId]);
 
@@ -114,6 +124,7 @@ export function usePuzzleBattleSocket() {
     roundWinner,
     opponentEmote,
     opponentDisconnected,
+    battleEnded,
     joinQueue,
     leaveQueue,
     sendMove,

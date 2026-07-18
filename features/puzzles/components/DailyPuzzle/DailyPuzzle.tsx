@@ -39,10 +39,12 @@ export function DailyPuzzle({ onReturnHome }: { onReturnHome: () => void }) {
 
     const moveStr = `${source}${target}`;
     const correctMove = dailyData.puzzle.moves[currentMoveIdx];
+    const expectedFromTo = correctMove.slice(0, 4);
+    const expectedPromotion = correctMove.length > 4 ? correctMove[4] : undefined;
 
-    if (moveStr === correctMove) {
+    if (moveStr === expectedFromTo) {
       try {
-        const move = localChess.move({ from: source, to: target, promotion: "q" });
+        const move = localChess.move({ from: source, to: target, promotion: expectedPromotion });
         if (move) {
           setBoardPosition(localChess.fen());
           const nextIdx = currentMoveIdx + 1;
@@ -62,10 +64,11 @@ export function DailyPuzzle({ onReturnHome }: { onReturnHome: () => void }) {
             
             if (isOpponentTurn && nextIdx < dailyData.puzzle.moves.length) {
                 setTimeout(() => {
-                    const oppMoveStr = dailyData.puzzle.moves[nextIdx];
-                    const oppSource = oppMoveStr.substring(0, 2);
-                    const oppTarget = oppMoveStr.substring(2, 4);
-                    localChess.move({ from: oppSource, to: oppTarget, promotion: "q" });
+                    const nextMove = dailyData.puzzle.moves[nextIdx];
+                    const oppSource = nextMove.substring(0, 2);
+                    const oppTarget = nextMove.substring(2, 4);
+                    const oppPromotion = nextMove.length > 4 ? nextMove[4] : undefined;
+                    localChess.move({ from: oppSource, to: oppTarget, promotion: oppPromotion });
                     setBoardPosition(localChess.fen());
                     playSound("/sounds/move.mp3");
                     

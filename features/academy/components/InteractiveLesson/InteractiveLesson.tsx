@@ -130,8 +130,9 @@ export const InteractiveLesson = memo(function InteractiveLesson({
                 if (bestMove && bestMove !== "(none)") {
                   const fromSq = bestMove.slice(0, 2);
                   const toSq = bestMove.slice(2, 4);
+                  const promotion = bestMove.length > 4 ? bestMove[4] : undefined;
                   try {
-                    const scMove = sparringChess.move({ from: fromSq, to: toSq, promotion: "q" });
+                    const scMove = sparringChess.move({ from: fromSq, to: toSq, promotion });
                     if (scMove) {
                       setBoardPosition(sparringChess.fen());
                       new Audio("/sounds/capture.mp3").play().catch(() => {});
@@ -164,10 +165,12 @@ export const InteractiveLesson = memo(function InteractiveLesson({
 
       const moveStr = `${source}${target}`;
       const correctMove = lesson.moves[currentMoveIdx];
+      const expectedFromTo = correctMove.slice(0, 4);
+      const expectedPromotion = correctMove.length > 4 ? correctMove[4] : undefined;
 
-      if (moveStr === correctMove) {
+      if (moveStr === expectedFromTo) {
         try {
-          const move = localChess.move({ from: source, to: target, promotion: "q" });
+          const move = localChess.move({ from: source, to: target, promotion: expectedPromotion });
           if (move) {
             new Audio("/sounds/move.mp3").play().catch(() => {});
             const nextIdx = currentMoveIdx + 1;

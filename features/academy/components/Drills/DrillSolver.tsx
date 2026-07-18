@@ -107,7 +107,13 @@ export const DrillSolver = memo(function DrillSolver({ drill }: DrillSolverProps
     }
 
     try {
-      const move = localChess.move({ from: source, to: target, promotion: "q" });
+      // In DrillSolver, moves aren't strictly pre-scripted, so if it's a promotion move, 
+      // we default to Queen if no UI is provided, but ideally it should use PromotionPicker.
+      // We will leave it as "q" unless we rewrite it to use useGameState.
+      // Wait, let's just make it auto "q" but safe.
+      const moves = localChess.moves({ verbose: true });
+      const isPromotion = moves.some(m => m.from === source && m.to === target && m.promotion);
+      const move = localChess.move({ from: source, to: target, promotion: isPromotion ? "q" : undefined });
       if (move) {
         setBoardPosition(localChess.fen());
         new Audio("/sounds/move.mp3").play().catch(() => {});

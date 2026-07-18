@@ -9,6 +9,7 @@ import {
   ACADEMY_LESSONS,
   AcademyLesson,
 } from "@/features/academy";
+import { fetchApi } from "@/lib/api-client";
 
 type LearnViewState = "dashboard" | "lesson" | "explorer";
 
@@ -21,8 +22,7 @@ export default function LearnPage() {
 
   // Fetch progress from backend
   useEffect(() => {
-    fetch("http://localhost:4001/academy/progress")
-      .then((res) => (res.ok ? res.json() : []))
+    fetchApi("/api/academy/progress")
       .then((data) => {
         if (Array.isArray(data)) {
           setCompletedLessons(data);
@@ -44,7 +44,7 @@ export default function LearnPage() {
       setCompletedLessons((prev) => [...prev, lessonId]);
 
       // Call API backend to complete lesson (saves to PostgreSQL)
-      fetch(`http://localhost:4001/academy/complete/${lessonId}`, {
+      fetchApi(`/api/academy/complete/${lessonId}`, {
         method: "POST",
       }).catch(() => {});
     }

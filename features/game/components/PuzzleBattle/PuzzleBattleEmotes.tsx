@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useEffect, useRef } from "react";
+import { memo, useState } from "react";
 import type { Emote } from "../../hooks/usePuzzleBattle";
 
 const AVAILABLE_EMOTES = [
@@ -20,17 +20,17 @@ interface PuzzleBattleEmotesProps {
 }
 
 function FloatingEmote({ emote }: { emote: Emote }) {
-  const randomX = useRef(Math.random() * 60 - 30);
-  const randomDuration = useRef(2.5 + Math.random() * 1);
+  const [offsetX] = useState(() => Math.random() * 60 - 30);
+  const [duration] = useState(() => 2.5 + Math.random() * 1);
 
   return (
     <div
       className="pointer-events-none fixed z-50 select-none animate-[battle-float-up_3s_ease-out_forwards]"
       style={{
         bottom: "5rem",
-        left: emote.fromOpponent ? `calc(75% + ${randomX.current}px)` : `calc(25% + ${randomX.current}px)`,
+        left: emote.fromOpponent ? `calc(75% + ${offsetX}px)` : `calc(25% + ${offsetX}px)`,
         fontSize: "2.5rem",
-        animationDuration: `${randomDuration.current}s`,
+        animationDuration: `${duration}s`,
         filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.5))",
       }}
     >

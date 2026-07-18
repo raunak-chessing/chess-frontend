@@ -4,25 +4,12 @@ import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ProfileHeader, StatsGrid, RatingChart, RecentGames, AdvancedInsights, AchievementsList } from "@/features/profile";
 import { Spinner } from "@/components/ui/Spinner";
+import { profileApi, UserProfileResponse } from "@/features/profile/api/profileApi";
+import { gameApi } from "@/features/game/api/gameApi";
 import { authClient } from "@/lib/auth-client";
 import { DailyGamesList } from "@/features/profile/components/DailyGamesList";
 
-interface UserProfileResponse {
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    image?: string | null;
-    rating: number;
-    ratingBullet: number;
-    ratingBlitz: number;
-    ratingRapid: number;
-    ratingDaily: number;
-    createdAt: string;
-  };
-  recentGames: any[];
-  stats: any;
-}
+
 
 export default function ProfileDetailPage({ params }: { params: Promise<{ userId: string }> }) {
   const resolvedParams = use(params);
@@ -38,13 +25,12 @@ export default function ProfileDetailPage({ params }: { params: Promise<{ userId
   const isOwnProfile = session?.user?.id === userId;
 
   useEffect(() => {
-    const fetchProfile = fetch(`http://localhost:4001/users/${userId}/profile`).then((res) => {
-      if (!res.ok) throw new Error("User profile not found.");
-      return res.json();
+    const fetchProfile = profileApi.getProfile(userId).catch(() => {
+      throw new Error("User profile not found.");
     });
 
     const fetchDailyGames = isOwnProfile
-      ? fetch(`http://localhost:4001/api/games/daily/my-games?userId=${userId}`).then((res) => res.ok ? res.json() : [])
+      ? gameApi.getMyDailyGames(userId).catch(() => [])
       : Promise.resolve([]);
 
     Promise.all([fetchProfile, fetchDailyGames])

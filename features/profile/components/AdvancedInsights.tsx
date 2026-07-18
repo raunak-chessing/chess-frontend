@@ -1,27 +1,20 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { profileApi, AdvancedInsightsResponse } from "../api/profileApi";
 
 interface InsightsProps {
   userId: string;
 }
 
-interface InsightsData {
-  white: { wins: number; losses: number; draws: number };
-  black: { wins: number; losses: number; draws: number };
-  openings: Record<string, { wins: number; losses: number; draws: number }>;
-  timeOfDay: { morning: number; afternoon: number; evening: number; night: number };
-}
-
 export function AdvancedInsights({ userId }: InsightsProps) {
-  const [data, setData] = useState<InsightsData | null>(null);
+  const [data, setData] = useState<AdvancedInsightsResponse | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const fetchInsights = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4001/api/users/${userId}/advanced-insights`);
-        const json = await res.json();
+        const json = await profileApi.getAdvancedInsights(userId);
         setData(json);
       } catch (e) {
         console.error(e);

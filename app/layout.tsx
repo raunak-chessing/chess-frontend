@@ -4,6 +4,7 @@ import "./globals.css";
 import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "react-hot-toast";
 import { FriendsSidebar } from "@/features/social/components/FriendsSidebar/FriendsSidebar";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -26,7 +27,9 @@ export default function RootLayout({
         <Toaster position="top-center" />
         <Navbar />
         <main className="flex-1 flex flex-col">
-          {children}
+          <ErrorBoundary>
+            {children}
+          </ErrorBoundary>
         </main>
         <FriendsSidebar />
       </body>

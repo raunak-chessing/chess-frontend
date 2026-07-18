@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { socialApi, SocialChallenge, SocialRequest, SocialRequestData } from '../api/socialApi';
 
 interface SocialUser {
   id: string;
@@ -10,8 +11,8 @@ interface SocialUser {
 interface SocialState {
   onlineUsers: Set<string>;
   friends: SocialUser[];
-  incomingChallenges: any[];
-  incomingRequests: any[];
+  incomingChallenges: SocialChallenge[];
+  incomingRequests: SocialRequest[];
   isSidebarOpen: boolean;
   
   setOnlineUsers: (userIds: string[]) => void;
@@ -20,11 +21,11 @@ interface SocialState {
   
   setFriends: (friends: SocialUser[]) => void;
   
-  addChallenge: (challenge: any) => void;
+  addChallenge: (challenge: SocialChallenge) => void;
   removeChallenge: (challengeId: string) => void;
   
-  setIncomingRequests: (requests: any[]) => void;
-  addIncomingRequest: (request: any) => void;
+  setIncomingRequests: (requests: SocialRequest[]) => void;
+  addIncomingRequest: (request: SocialRequest) => void;
   removeIncomingRequest: (requestId: string) => void;
   
   toggleSidebar: () => void;

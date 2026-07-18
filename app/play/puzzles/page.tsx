@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { GameView } from "@/features/game";
+import GameView from "@/features/game/components/GameView/GameView";
 
 export default function PlayPuzzlesPage() {
   const router = useRouter();

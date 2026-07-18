@@ -1,4 +1,5 @@
 import { memo, useState, useEffect } from "react";
+import { profileApi } from "../api/profileApi";
 
 interface RecentGame {
   id: string;
@@ -24,8 +25,7 @@ export const RatingChart = memo(function RatingChart({ userId }: RatingChartProp
     const fetchHistory = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4001/api/users/${userId}/rating-history?timeframe=${timeframe}`);
-        const data = await res.json();
+        const data = await profileApi.getRatingHistory(userId, timeframe);
         // Assuming we just want to plot the rating values
         setTrajectory(data.map((d: any) => d.rating));
       } catch (e) {

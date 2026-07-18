@@ -30,10 +30,6 @@ export function useVoiceAnnouncer(
 
         // Speak the move
         if (typeof window !== "undefined" && window.speechSynthesis) {
-          // In non-blindfold mode, maybe we don't need to speak? The requirement says "Text-to-Speech (Opponent Move Announcer)". Let's always announce it if it's an opponent move, or maybe only if blindfold is active? 
-          // Actually, "announce opponent moves when they arrive" is good.
-          // We can require blindfold to be true, or maybe we just announce it always if mic is listening or blindfold is on.
-          // Let's just announce it if it's blindfold mode OR maybe always? Let's announce it always.
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.rate = 1.1; // Slightly faster
           window.speechSynthesis.speak(utterance);

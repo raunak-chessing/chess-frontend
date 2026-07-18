@@ -40,10 +40,12 @@ export function RatedPuzzles() {
 
     const moveStr = `${source}${target}`;
     const correctMove = currentRatedPuzzle.moves[currentMoveIdx];
+    const expectedFromTo = correctMove.slice(0, 4);
+    const expectedPromotion = correctMove.length > 4 ? correctMove[4] : undefined;
 
-    if (moveStr === correctMove) {
+    if (moveStr === expectedFromTo) {
       try {
-        const move = localChess.move({ from: source, to: target, promotion: "q" });
+        const move = localChess.move({ from: source, to: target, promotion: expectedPromotion });
         if (move) {
           setBoardPosition(localChess.fen());
           const nextIdx = currentMoveIdx + 1;
@@ -57,24 +59,17 @@ export function RatedPuzzles() {
             submitAttempt(currentRatedPuzzle.id, true, timeSpent);
           } else {
             setCurrentMoveIdx(nextIdx);
-            // In a real scenario, if the puzzle has opponent moves in between, we would trigger it here.
-            // But since our puzzles currently just string user moves (or interleaves),
-            // if next move belongs to the opponent, we play it automatically.
-            // For simplicity, let's assume `moves` only contains user moves right now, or interleaved.
-            // In typical lichess format, `moves` is interleaved: user, opp, user, opp.
-            // If the next turn in localChess belongs to the opponent (based on puzzle starting turn),
-            // we should make the move for them.
             
             const nextTurn = localChess.turn();
-            // Assuming fen turn is user's turn (since it's a puzzle for them).
             const isOpponentTurn = (currentRatedPuzzle.fen.split(' ')[1] !== nextTurn);
             
             if (isOpponentTurn && nextIdx < currentRatedPuzzle.moves.length) {
                 setTimeout(() => {
-                    const oppMoveStr = currentRatedPuzzle.moves[nextIdx];
-                    const oppSource = oppMoveStr.substring(0, 2);
-                    const oppTarget = oppMoveStr.substring(2, 4);
-                    localChess.move({ from: oppSource, to: oppTarget, promotion: "q" });
+                    const nextMove = currentRatedPuzzle.moves[nextIdx];
+                    const oppSource = nextMove.substring(0, 2);
+                    const oppTarget = nextMove.substring(2, 4);
+                    const oppPromotion = nextMove.length > 4 ? nextMove[4] : undefined;
+                    localChess.move({ from: oppSource, to: oppTarget, promotion: oppPromotion });
                     setBoardPosition(localChess.fen());
                     playSound("/sounds/move.mp3");
                     

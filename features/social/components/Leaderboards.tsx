@@ -1,22 +1,7 @@
 import { useEffect, useState } from "react";
 import { Loader2, Trophy } from "lucide-react";
 import Image from "next/image";
-
-interface LeaderboardUser {
-  id: string;
-  name: string;
-  image: string | null;
-  country: string | null;
-  ratingBullet: number;
-  ratingBlitz: number;
-  ratingRapid: number;
-}
-
-interface LeaderboardsData {
-  bullet: LeaderboardUser[];
-  blitz: LeaderboardUser[];
-  rapid: LeaderboardUser[];
-}
+import { socialApi, LeaderboardUser, LeaderboardsData } from "../api/socialApi";
 
 export function Leaderboards() {
   const [data, setData] = useState<LeaderboardsData | null>(null);
@@ -27,8 +12,7 @@ export function Leaderboards() {
     const fetchLeaderboards = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4001/api/users/leaderboard/global`);
-        const json = await res.json();
+        const json = await socialApi.getGlobalLeaderboard();
         setData(json);
       } catch (e) {
         console.error(e);

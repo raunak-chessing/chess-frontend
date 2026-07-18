@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useCallback, useMemo, useRef, useEffect } from "react";
-import { Chess, Square } from "chess.js";
+import { Chess } from "chess.js";
+import { useGameStore } from "../store/gameStore";
 import type {
   GameMode,
   GameVariant,
@@ -60,7 +61,15 @@ function generateChess960FEN(): string {
   const whiteRow = pieces.join("");
   const blackRow = pieces.join("").toLowerCase();
 
-  return `${blackRow}/pppppppp/8/8/8/8/PPPPPPPP/${whiteRow} w KQkq - 0 1`;
+  const rookPositions = pieces.map((p, i) => p === 'R' ? i : -1).filter(i => i !== -1);
+  const kingPos = pieces.indexOf('K');
+  const files = 'ABCDEFGH';
+  let castling = '';
+  if (rookPositions[1] > kingPos) castling += files[rookPositions[1]];
+  if (rookPositions[0] < kingPos) castling += files[rookPositions[0]];
+  castling += castling.toLowerCase();
+
+  return `${blackRow}/pppppppp/8/8/8/8/PPPPPPPP/${whiteRow} w ${castling || '-'} - 0 1`;
 }
 
 function getCapturedPieces(gameInstance: Chess): string[] {
@@ -111,6 +120,7 @@ export interface GameState {
   fen: string;
   selectedSquare: string;
   lastMove: LastMove | null;
+  pendingPromotion: { from: string; to: string } | null;
   flipped: boolean;
   autoFlip: boolean;
   capturedWhite: string[];
@@ -139,6 +149,7 @@ export interface GameActions {
     joinedRoom: string,
     playerColor: "w" | "b" | null,
     socket: { emit: (event: string, data: Record<string, string>) => void } | null,
+    promotionPiece?: string
   ) => void;
   getSquareStyles: () => SquareStyles;
   handleUndo: (
@@ -152,28 +163,47 @@ export interface GameActions {
     socket: { emit: (event: string, data: Record<string, unknown>) => void } | null,
   ) => void;
   handleAutoFlipToggle: (checked: boolean) => void;
-  setFlipped: (val: boolean | ((prev: boolean) => boolean)) => void;
+  setFlipped: (flipped: boolean) => void;
+  setAutoFlip: (autoFlip: boolean) => void;
   resetGame: (flipBoard?: boolean) => void;
   resetGameWithVariant: (v: GameVariant, flipBoard?: boolean) => void;
-  applyMove: (fromOrSan: string, to?: string) => boolean;
+  applyMove: (fromOrSan: string, to?: string, promotionPiece?: string) => boolean;
   applyUndo: () => void;
+  performUndo: () => { undone: boolean; prevFrom: string; prevTo: string; fen: string };
   setViewMoveIndex: (index: number | null) => void;
   setVariant: (variant: GameVariant) => void;
   clearPremoves: () => void;
-  setFen: React.Dispatch<React.SetStateAction<string>>;
+  setFen: (fen: string) => void;
+  resolvePromotion: (piece: "q" | "r" | "b" | "n", gameMode: GameMode, joinedRoom: string, socket: any) => void;
+  cancelPromotion: () => void;
 }
 
-export function useGameState(): GameState & GameActions {
-  const [game] = useState<Chess>(() => new Chess());
-  const [fen, setFen] = useState<string>(game.fen());
-  const [selectedSquare, setSelectedSquare] = useState<string>("");
-  const [lastMove, setLastMove] = useState<LastMove | null>(null);
-  const [flipped, setFlipped] = useState<boolean>(false);
-  const [autoFlip, setAutoFlip] = useState<boolean>(false);
-  const [viewMoveIndex, setViewMoveIndex] = useState<number | null>(null);
-  const [premoveQueue, setPremoveQueue] = useState<{ from: string; to: string }[]>([]);
+export function useGameState(): UseGameStateReturn {
+  const store = useGameStore();
+  const {
+    fen,
+    variant,
+    selectedSquare,
+    lastMove,
+    autoFlip,
+    viewMoveIndex,
+    pendingPromotion,
+    isFlipped: flipped,
+    setFen,
+    setVariant,
+    setSelectedSquare,
+    setLastMove,
+    setAutoFlip,
+    setViewMoveIndex,
+    setPendingPromotion,
+    setIsFlipped: setFlipped,
+  } = store;
 
-  const [variant, setVariant] = useState<GameVariant>("standard");
+  const [game] = useState(() => {
+    const c = new Chess();
+    c.load(fen);
+    return c;
+  });
   const variantRef = useRef<GameVariant>(variant);
   useEffect(() => {
     variantRef.current = variant;
@@ -182,6 +212,7 @@ export function useGameState(): GameState & GameActions {
   const [whiteChecks, setWhiteChecks] = useState<number>(0);
   const [blackChecks, setBlackChecks] = useState<number>(0);
   const [variantWinner, setVariantWinner] = useState<"w" | "b" | null>(null);
+  const [premoveQueue, setPremoveQueue] = useState<{ from: string; to: string }[]>([]);
 
   const [initialFen, setInitialFen] = useState<string>(game.fen());
 
@@ -225,13 +256,14 @@ export function useGameState(): GameState & GameActions {
       setSelectedSquare("");
       setLastMove(null);
       setViewMoveIndex(null);
+      setPendingPromotion(null);
       setWhiteChecks(0);
       setBlackChecks(0);
       setVariantWinner(null);
       setPremoveQueue([]);
       if (flipBoard) {
         setFlipped(true);
-      } else if (autoFlip) {
+      } else if (store.autoFlip) {
         setFlipped(false);
       }
     },
@@ -253,11 +285,16 @@ export function useGameState(): GameState & GameActions {
   );
 
   const applyMove = useCallback(
-    (fromOrSan: string, to?: string): boolean => {
+    (fromOrSan: string, to?: string, promotionPiece?: string): boolean => {
       try {
         let move;
         if (to) {
-          move = game.move({ from: fromOrSan, to, promotion: "q" });
+          const isPromotion = game.moves({ verbose: true }).some(m => m.from === fromOrSan && m.to === to && m.promotion);
+          if (isPromotion && !promotionPiece) {
+            setPendingPromotion({ from: fromOrSan, to });
+            return false;
+          }
+          move = game.move({ from: fromOrSan, to, promotion: promotionPiece });
         } else {
           move = game.move(fromOrSan);
         }
@@ -351,6 +388,7 @@ export function useGameState(): GameState & GameActions {
       setSelectedSquare("");
       setViewMoveIndex(null);
       setPremoveQueue([]);
+      setPendingPromotion(null);
       const history = game.history({ verbose: true });
       if (history.length > 0) {
         const last = history[history.length - 1];
@@ -359,7 +397,7 @@ export function useGameState(): GameState & GameActions {
         setLastMove(null);
       }
       recalculateChecks(game);
-      const audio = playSound("/sounds/move.mp3");
+      playSound("/sounds/move.mp3");
     }
   }, [game, recalculateChecks]);
 
@@ -391,9 +429,15 @@ export function useGameState(): GameState & GameActions {
       gameMode: GameMode,
       joinedRoom: string,
       socket: { emit: (event: string, data: Record<string, string>) => void } | null,
+      promotionPiece?: string
     ): boolean => {
       try {
-        const move = game.move({ from, to, promotion: "q" });
+        const isPromotion = game.moves({ verbose: true }).some(m => m.from === from && m.to === to && m.promotion);
+        if (isPromotion && !promotionPiece) {
+          setPendingPromotion({ from, to });
+          return false;
+        }
+        const move = game.move({ from, to, promotion: promotionPiece });
         if (move) {
           const nextFen = game.fen();
           setFen(nextFen);
@@ -402,7 +446,7 @@ export function useGameState(): GameState & GameActions {
           playMoveSound(move, game.inCheck());
 
           if (gameMode === "online" && socket && joinedRoom) {
-            socket.emit("makeMove", { room: joinedRoom, from, to, fen: nextFen });
+            socket.emit("makeMove", { room: joinedRoom, from, to, promotion: promotionPiece, fen: nextFen });
           } else {
             syncFlipState(game.turn(), autoFlip);
           }
@@ -428,6 +472,7 @@ export function useGameState(): GameState & GameActions {
       joinedRoom: string,
       playerColor: "w" | "b" | null,
       socket: { emit: (event: string, data: Record<string, string>) => void } | null,
+      promotionPiece?: string
     ): boolean => {
       const isTurn = isPlayerTurn(gameMode, joinedRoom, playerColor);
       
@@ -443,9 +488,8 @@ export function useGameState(): GameState & GameActions {
         return false; // Return false so the piece snaps back visually, but we recorded it
       }
       
-      // If it's our turn, clear premoves that might have been leftover
       setPremoveQueue([]);
-      return executeMove(sourceSquare, targetSquare, gameMode, joinedRoom, socket);
+      return executeMove(sourceSquare, targetSquare, gameMode, joinedRoom, socket, promotionPiece);
     },
     [isPlayerTurn, executeMove, game],
   );
@@ -457,6 +501,7 @@ export function useGameState(): GameState & GameActions {
       joinedRoom: string,
       playerColor: "w" | "b" | null,
       socket: { emit: (event: string, data: Record<string, string>) => void } | null,
+      promotionPiece?: string
     ) => {
       const isTurn = isPlayerTurn(gameMode, joinedRoom, playerColor);
 
@@ -482,16 +527,21 @@ export function useGameState(): GameState & GameActions {
 
       if (selectedSquare) {
         setPremoveQueue([]);
-        const moved = executeMove(selectedSquare, square, gameMode, joinedRoom, socket);
+        const moved = executeMove(selectedSquare, square, gameMode, joinedRoom, socket, promotionPiece);
         if (moved) return;
-      }
-
-      const piece = game.get(square as Square);
-      const turn = game.turn();
-      if (piece && piece.color === turn) {
-        setSelectedSquare(square);
+        // They clicked another piece of theirs, select it instead
+        const piece = game.get(square as Square);
+        if (piece && piece.color === game.turn()) {
+          setSelectedSquare(square);
+        }
       } else {
-        setSelectedSquare("");
+        const piece = game.get(square as Square);
+        const turn = game.turn();
+        if (piece && piece.color === turn) {
+          setSelectedSquare(square);
+        } else {
+          setSelectedSquare("");
+        }
       }
     },
     [game, selectedSquare, isPlayerTurn, executeMove],
@@ -541,9 +591,9 @@ export function useGameState(): GameState & GameActions {
     return styles;
   }, [game, lastMove, selectedSquare, premoveQueue]);
 
-  const performUndo = useCallback((): { undone: boolean; prevFrom: string; prevTo: string } => {
+  const performUndo = useCallback((): { undone: boolean; prevFrom: string; prevTo: string; fen: string } => {
     const undone = game.undo();
-    if (!undone) return { undone: false, prevFrom: "", prevTo: "" };
+    if (!undone) return { undone: false, prevFrom: "", prevTo: "", fen: "" };
 
     setFen(game.fen());
     setSelectedSquare("");
@@ -564,7 +614,7 @@ export function useGameState(): GameState & GameActions {
     recalculateChecks(game);
     playSound("/sounds/move.mp3");
 
-    return { undone: true, prevFrom, prevTo };
+    return { undone: true, prevFrom, prevTo, fen: game.fen() };
   }, [game, recalculateChecks]);
 
   const handleUndo = useCallback(
@@ -623,6 +673,18 @@ export function useGameState(): GameState & GameActions {
     [game],
   );
 
+  const resolvePromotion = useCallback((piece: "q" | "r" | "b" | "n", gameMode: GameMode, joinedRoom: string, socket: any) => {
+    if (!pendingPromotion) return;
+    const { from, to } = pendingPromotion;
+    setPendingPromotion(null);
+    executeMove(from, to, gameMode, joinedRoom, socket, piece);
+  }, [pendingPromotion, executeMove]);
+
+  const cancelPromotion = useCallback(() => {
+    setPendingPromotion(null);
+    setSelectedSquare("");
+  }, []);
+
   const captured = useMemo(() => {
     if (!fen) return [];
     return getCapturedPieces(game);
@@ -641,6 +703,7 @@ export function useGameState(): GameState & GameActions {
     fen: boardFen,
     selectedSquare,
     lastMove,
+    pendingPromotion,
     flipped,
     autoFlip,
     capturedWhite,
@@ -658,14 +721,18 @@ export function useGameState(): GameState & GameActions {
     handleReset,
     handleAutoFlipToggle,
     setFlipped,
+    setAutoFlip,
     resetGame,
     resetGameWithVariant,
     applyMove,
     applyUndo,
+    performUndo,
     setViewMoveIndex,
     setVariant,
     premoveQueue,
     clearPremoves,
     setFen,
+    resolvePromotion,
+    cancelPromotion,
   };
 }

@@ -1,6 +1,5 @@
-"use client";
-
 import { useEffect, useState } from "react";
+import { gameApi } from "../../api/gameApi";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, ReferenceLine } from "recharts";
 import { Loader2, TrendingUp, TrendingDown, Target, BrainCircuit } from "lucide-react";
 
@@ -37,15 +36,7 @@ export function GameReview({ pgn, whitePlayerName, blackPlayerName }: GameReview
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`http://localhost:4001/api/analysis/pgn`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ pgn })
-      });
-      if (!res.ok) {
-        throw new Error("Failed to load analysis");
-      }
-      const data = await res.json();
+      const data = await gameApi.analyzePgn(pgn);
       setAnalysis(data);
     } catch (err: any) {
       setError(err.message);

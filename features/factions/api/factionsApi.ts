@@ -1,28 +1,27 @@
-export interface Faction {
-  id: string;
-  name: string;
-  description: string;
-  colorTheme: string;
-  totalScore: number;
-  _count?: {
-    users: number;
-  };
-}
+import { z } from 'zod';
+import { fetchApi } from '@/lib/api-client';
+
+export const FactionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  colorTheme: z.string(),
+  totalScore: z.number(),
+  _count: z.object({
+    users: z.number(),
+  }).optional(),
+});
+export type Faction = z.infer<typeof FactionSchema>;
+
+export const FactionListSchema = z.array(FactionSchema);
 
 export const getFactions = async (): Promise<Faction[]> => {
-  const response = await fetch('http://localhost:4001/api/factions', {
-    credentials: 'include',
-  });
-  if (!response.ok) throw new Error('Failed to fetch factions');
-  return response.json();
+  return fetchApi('/api/factions').then(res => FactionListSchema.parse(res));
 };
 
 export const joinFaction = async (factionId: string): Promise<void> => {
-  const response = await fetch('http://localhost:4001/api/factions/join', {
+  return fetchApi('/api/factions/join', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ factionId }),
-    credentials: 'include',
   });
-  if (!response.ok) throw new Error('Failed to join faction');
 };

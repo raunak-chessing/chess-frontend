@@ -1,11 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { getActiveQuests, Quest } from '../api/questsApi';
+import { getActiveQuests, claimQuest, Quest } from '../api/questsApi';
 import { Target, Trophy, Flame, CheckCircle, Clock } from 'lucide-react';
+import type { ElementType } from 'react';
 import { authClient } from '@/lib/auth-client';
+import { toast } from 'react-hot-toast';
 
-const QUEST_LABELS: Record<string, { title: string; icon: any }> = {
+const QUEST_LABELS: Record<string, { title: string; icon: ElementType }> = {
   WIN_GAMES: { title: 'Win Games', icon: Trophy },
   SOLVE_PUZZLES: { title: 'Solve Puzzles', icon: Target },
   PLAY_BATTLES: { title: 'Play Puzzle Battles', icon: Flame },
@@ -33,6 +35,18 @@ export function QuestWidget() {
 
     fetchQuests();
   }, [session]);
+
+  const handleClaim = async (questId: string) => {
+    try {
+      const res = await claimQuest(questId);
+      if (res.success) {
+        toast.success(`Claimed ${res.reward.gold} Gold and ${res.reward.aetherium} Aetherium!`);
+        setQuests(prev => prev.map(q => q.id === questId ? { ...q, rewardClaimed: true } : q));
+      }
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to claim reward');
+    }
+  };
 
   if (!session) return null;
 
@@ -92,6 +106,20 @@ export function QuestWidget() {
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
+                    
+                    {quest.completed && !quest.rewardClaimed && (
+                      <button
+                        onClick={() => handleClaim(quest.id)}
+                        className="mt-3 w-full py-1.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold text-xs rounded-md shadow-lg transition-transform active:scale-95 relative z-10"
+                      >
+                        Claim Reward
+                      </button>
+                    )}
+                    {quest.completed && quest.rewardClaimed && (
+                      <div className="mt-3 w-full py-1.5 bg-neutral-800 text-neutral-500 font-bold text-xs text-center rounded-md relative z-10">
+                        Claimed
+                      </div>
+                    )}
                   </div>
                 );
               })

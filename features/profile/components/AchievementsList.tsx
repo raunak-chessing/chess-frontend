@@ -1,14 +1,9 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
+import { profileApi, Achievement } from "../api/profileApi";
 
 interface AchievementsListProps {
   userId: string;
-}
-
-interface Achievement {
-  id: string;
-  achievement: string;
-  unlockedAt: string;
 }
 
 const BADGES = [
@@ -27,8 +22,7 @@ export function AchievementsList({ userId }: AchievementsListProps) {
     const fetchAchievements = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`http://localhost:4001/api/users/${userId}/achievements`);
-        const json = await res.json();
+        const json = await profileApi.getAchievements(userId);
         setAchievements(json);
       } catch (e) {
         console.error(e);

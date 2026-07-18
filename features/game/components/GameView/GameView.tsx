@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import type { GameMode, GameVariant } from "../../types/game.types";
 import { useGameState } from "../../hooks/useGameState";
 import { useGameSocket } from "../../hooks/useGameSocket";
@@ -14,14 +15,21 @@ import MoveHistory from "../MoveHistory/MoveHistory";
 import { GameReview } from "../GameReview/GameReview";
 import { PuzzleRush } from "../PuzzleRush/PuzzleRush";
 import { OnlineMatchmaker } from "../OnlineMatchmaker";
-import { GameChat } from "../GameChat";
-import { TIME_CONTROLS, CHESS_VARIANTS, COMPUTER_OPPONENTS, GAME_MODE_TABS } from "../../constants/setupOptions";
+import { ConsentDialog } from "../ConsentDialog";
+import { GameChat } from "../GameChat/GameChat";
+import { lichessApi } from "../../../../lib/lichessApi";
+import { TIME_CONTROLS, CHESS_VARIANTS, COMPUTER_OPPONENTS } from "../../constants/setupOptions";
 import { Card } from "../../../../components/ui/Card";
 import { SelectableCard } from "../../../../components/ui/SelectableCard";
 import { SectionHeader } from "../../../../components/ui/SectionHeader";
+import { GameSetupLobby } from "../GameSetupLobby";
+import { GameResultOverlay } from "../GameResultOverlay";
+import { GameHeader } from "../GameHeader";
 import { formatTime } from "../../../../lib/utils";
 import { useVoiceControl } from "../../hooks/useVoiceControl";
 import { useVoiceAnnouncer } from "../../hooks/useVoiceAnnouncer";
+import { useServerClock } from "../../hooks/useServerClock";
+import { PromotionPicker } from "../PromotionPicker";
 
 interface GameViewProps {
   initialMode: GameMode;
@@ -36,11 +44,15 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const [showReview, setShowReview] = useState(false);
   const [isBlindfold, setIsBlindfold] = useState(false);
 
+  const searchParams = useSearchParams();
+  const autoJoinAttempted = useRef(false);
+
   const [whiteTime, setWhiteTime] = useState(600);
   const [blackTime, setBlackTime] = useState(600);
 
   // Setup lobby states
   const [isSetupComplete, setIsSetupComplete] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [botDifficulty, setBotDifficulty] = useState<number>(3);
   const [selectedVariant, setSelectedVariant] = useState<GameVariant>("standard");
   const [localTimeControl, setLocalTimeControl] = useState("10|0");
@@ -51,15 +63,6 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const gameState = useGameState();
 
   const activeBot = useMemo(() => COMPUTER_OPPONENTS.find((b) => b.id === botDifficulty), [botDifficulty]);
-
-  if (gameMode === "puzzle-rush") {
-    return (
-      <main className="min-h-screen bg-cc-bg-page py-8 px-4 flex flex-col items-center justify-center relative overflow-hidden">
-        <div className="grid-background"></div>
-        <PuzzleRush onReturnHome={onReturnHome} />
-      </main>
-    );
-  }
 
   const handleResetTimers = useCallback(() => {
     if (localTimeControl === "unlimited") {
@@ -98,6 +101,22 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
 
   const socketState = useGameSocket(socketHandlers);
 
+  // Auto-join from challenge
+  useEffect(() => {
+    if (initialMode === "online" && !autoJoinAttempted.current) {
+      const gameId = searchParams.get("gameId");
+      if (gameId && socketState.connected && !socketState.joinedRoom && !socketState.inQueue) {
+        autoJoinAttempted.current = true;
+        socketState.setRoomCode(gameId);
+        // We need a short timeout to allow the state to propagate before calling handleJoinOnlineRoom,
+        // or we can just emit it directly since we know the code.
+        setTimeout(() => {
+          socketState.handleJoinOnlineRoom();
+        }, 100);
+      }
+    }
+  }, [initialMode, searchParams, socketState]);
+
   // Apply a move explicitly for Voice Control (which can take SAN or {from, to})
   const handleVoiceMove = useCallback((move: string | { from: string; to: string }) => {
     if (gameState.game.isGameOver() || localResult !== null) return false;
@@ -124,9 +143,11 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
 
     const success = gameState.applyMove(matchedMove.san);
     if (success && gameMode === "online" && socketState.joinedRoom) {
-      socketState.socket.emit("move", {
+      socketState.socket.emit("makeMove", {
         room: socketState.joinedRoom,
-        move: matchedMove.san,
+        from: matchedMove.from,
+        to: matchedMove.to,
+        promotion: matchedMove.promotion
       });
     }
     return success;
@@ -137,13 +158,13 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const historyLength = gameState.game.history().length;
   const lastMoveSan = historyLength > 0 ? gameState.game.history()[historyLength - 1] : null;
   const turn = gameState.game.turn();
-  const isOpponentMoveNow = 
+  const isOurTurnNow = 
       (gameMode === "online" && socketState.playerColor === turn) ||
       (gameMode === "computer-black" && turn === "w") ||
       (gameMode === "computer-white" && turn === "b");
   
   // If it's our turn now, it means the opponent just moved!
-  useVoiceAnnouncer(historyLength, lastMoveSan, isOpponentMoveNow, isBlindfold);
+  useVoiceAnnouncer(historyLength, lastMoveSan, isOurTurnNow, isBlindfold);
 
   // Auto-dismiss setup lobby when an online match is successfully found
   useEffect(() => {
@@ -199,13 +220,13 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     const isGameOver = gameState.game.isGameOver() || localResult !== null;
     const hasHistory = gameState.game.history().length > 0;
 
-    if (hasHistory && !isGameOver) {
+    if (hasHistory && !isGameOver && gameMode !== "online") {
       interval = setInterval(() => {
         const turn = gameState.game.turn();
         if (turn === "w") {
           setWhiteTime((prev) => {
             if (prev <= 1) {
-              setLocalResult(gameMode === "online" ? (socketState.playerColor === "w" ? "lost" : "won") : "lost");
+              setLocalResult("lost");
               return 0;
             }
             return prev - 1;
@@ -213,7 +234,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
         } else {
           setBlackTime((prev) => {
             if (prev <= 1) {
-              setLocalResult(gameMode === "online" ? (socketState.playerColor === "b" ? "lost" : "won") : "won");
+              setLocalResult("won");
               return 0;
             }
             return prev - 1;
@@ -226,6 +247,17 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
       if (interval) clearInterval(interval);
     };
   }, [gameState.fen, gameState.game, gameMode, socketState.playerColor, localResult]);
+
+  const serverClock = useServerClock(
+    gameState.turn,
+    socketState.serverWhiteMs,
+    socketState.serverBlackMs,
+    socketState.serverSyncTimestamp,
+    gameMode === "online" && !gameState.game.isGameOver() && localResult === null,
+    (color) => {
+      socketState.handleClaimTimeout();
+    }
+  );
 
   useEffect(() => {
     // Premove execution logic
@@ -265,10 +297,9 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     
     const fetchOpening = async () => {
       try {
-        const res = await fetch(`https://explorer.lichess.ovh/master?fen=${encodeURIComponent(gameState.fen)}`);
-        const data = await res.json();
-        if (data.opening && data.opening.name) {
-          setOpeningName(data.opening.name);
+        const openingName = await lichessApi.getOpeningName(gameState.fen);
+        if (openingName) {
+          setOpeningName(openingName);
         }
       } catch (e) {
         // silently ignore
@@ -288,16 +319,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     botDifficulty,
   });
 
-  const handleGameModeChange = useCallback(
-    (mode: GameMode) => {
-      setLocalResult(null);
-      setOverlayDismissed(false);
-      handleResetTimers();
-      setGameMode(mode);
-      gameState.resetGame(mode === "computer-white");
-    },
-    [gameState, handleResetTimers],
-  );
+
 
   const handlePieceDrop = useCallback(
     (source: string, target: string): boolean => {
@@ -339,15 +361,23 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   );
 
   const handleUndo = useCallback(() => {
-    gameState.handleUndo(gameMode, socketState.joinedRoom, socketState.socket);
-  }, [gameState, gameMode, socketState.joinedRoom, socketState.socket]);
+    if (gameMode === "online") {
+      socketState.requestUndo();
+    } else {
+      gameState.handleUndo(gameMode, socketState.joinedRoom, socketState.socket);
+    }
+  }, [gameState, gameMode, socketState]);
 
   const handleReset = useCallback(() => {
-    setLocalResult(null);
-    setOverlayDismissed(false);
-    handleResetTimers();
-    gameState.handleReset(gameMode, socketState.joinedRoom, socketState.socket);
-  }, [gameState, gameMode, socketState.joinedRoom, socketState.socket, handleResetTimers]);
+    if (gameMode === "online") {
+      socketState.requestRematch();
+    } else {
+      setLocalResult(null);
+      setOverlayDismissed(false);
+      handleResetTimers();
+      gameState.handleReset(gameMode, socketState.joinedRoom, socketState.socket);
+    }
+  }, [gameState, gameMode, socketState, handleResetTimers]);
 
   const handleFlipBoard = useCallback(() => {
     gameState.setFlipped((prev) => !prev);
@@ -441,193 +471,65 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const selfChecks = selfColor === "w" ? gameState.whiteChecks : gameState.blackChecks;
   const oppChecks = selfColor === "w" ? gameState.blackChecks : gameState.whiteChecks;
 
-  const playerLeftTime =
+  const playerLeftTimeStr =
     gameMode === "online"
       ? socketState.playerColor === "b"
-        ? blackTime
-        : whiteTime
-      : gameMode === "computer-white"
-      ? blackTime
-      : whiteTime;
+        ? serverClock.displayBlackTime
+        : serverClock.displayWhiteTime
+      : formatTime(gameMode === "computer-white" ? blackTime : whiteTime);
 
-  const playerRightTime =
+  const playerRightTimeStr =
     gameMode === "online"
       ? socketState.playerColor === "b"
-        ? whiteTime
-        : blackTime
-      : gameMode === "computer-white"
-      ? whiteTime
-      : blackTime;
+        ? serverClock.displayWhiteTime
+        : serverClock.displayBlackTime
+      : formatTime(gameMode === "computer-white" ? whiteTime : blackTime);
+
+  if (gameMode === "puzzle-rush") {
+    return (
+      <main className="min-h-screen bg-cc-bg-page py-8 px-4 flex flex-col items-center justify-center relative overflow-hidden">
+        <div className="grid-background"></div>
+        <PuzzleRush onReturnHome={onReturnHome} />
+      </main>
+    );
+  }
 
   if (!isSetupComplete) {
     return (
-      <main className="min-h-screen w-full flex flex-col justify-center items-center p-6 font-sans relative overflow-hidden bg-cc-bg-sidebar text-cc-text-primary">
-        <div className="grid-background"></div>
-        <Card className="w-full max-w-xl flex flex-col gap-6 relative z-10">
-          
-          <div className="flex justify-between items-center border-b pb-4 border-cc-border-light">
-            <h2 className="text-2xl font-bold font-sans tracking-tight text-cc-text-primary">
-              {gameMode === "online" ? "Play Online" : (gameMode === "pvp" ? "Play Locally" : "Play vs Computer")}
-            </h2>
-            <button
-              onClick={onReturnHome}
-              className="text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-colors bg-cc-bg-input text-cc-text-secondary hover:bg-cc-bg-hover"
-            >
-              Quit Setup
-            </button>
-          </div>
+      <GameSetupLobby
+        gameMode={gameMode}
+        setGameMode={setGameMode}
+        onReturnHome={onReturnHome}
+        selectedVariant={selectedVariant}
+        setSelectedVariant={setSelectedVariant}
+        localTimeControl={localTimeControl}
+        setLocalTimeControl={setLocalTimeControl}
+        botDifficulty={botDifficulty}
+        setBotDifficulty={setBotDifficulty}
+        botSide={botSide}
+        setBotSide={setBotSide}
+        isBlindfold={isBlindfold}
+        setIsBlindfold={setIsBlindfold}
+        socketState={socketState}
+        onStartGame={(flip: boolean) => {
+          gameState.resetGameWithVariant(selectedVariant, flip);
+          setIsTransitioning(true);
+          setTimeout(() => {
+            setIsSetupComplete(true);
+            setIsTransitioning(false);
+          }, 800);
+        }}
+      />
+    );
+  }
 
-          {gameMode !== "online" && (
-            <div className="flex flex-col gap-2">
-              <SectionHeader>Select Chess Variant</SectionHeader>
-              <div className="grid grid-cols-2 gap-3">
-                {CHESS_VARIANTS.map((v) => {
-                  const isActive = selectedVariant === v.id;
-                  return (
-                    <SelectableCard
-                      key={v.id}
-                      isActive={isActive}
-                      onClick={() => setSelectedVariant(v.id as GameVariant)}
-                      className="p-3 rounded-xl flex flex-col items-start gap-1 text-left"
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className="text-xl">{v.icon}</span>
-                        <span className="text-sm font-bold font-sans">{v.name}</span>
-                      </div>
-                      <span className="text-[11px] font-medium leading-tight opacity-80">{v.desc}</span>
-                    </SelectableCard>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {gameMode !== "online" && (
-            <div className="flex flex-col gap-2 border-t pt-4 border-cc-border-light">
-              <SectionHeader>Select Time Control</SectionHeader>
-              <div className="grid grid-cols-4 gap-2">
-                {TIME_CONTROLS.map((tc) => {
-                  const isActive = localTimeControl === tc.value;
-                  return (
-                    <SelectableCard
-                      key={tc.value}
-                      isActive={isActive}
-                      onClick={() => setLocalTimeControl(tc.value)}
-                      className="py-2 px-1 text-[10px] font-bold rounded-xl flex flex-col items-center justify-center gap-0.5"
-                    >
-                      <span>{tc.name}</span>
-                      <span className="text-[8px] opacity-70 font-semibold">{tc.type}</span>
-                    </SelectableCard>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-
-          {(gameMode === "computer-black" || gameMode === "computer-white") && (
-            <>
-              <div className="flex flex-col gap-2 border-t pt-4 border-cc-border-light">
-                <SectionHeader>Choose Computer Opponent</SectionHeader>
-                <div className="grid grid-cols-4 gap-3">
-                  {COMPUTER_OPPONENTS.map((b) => {
-                    const isActive = botDifficulty === b.id;
-                    return (
-                      <SelectableCard
-                        key={b.id}
-                        isActive={isActive}
-                        onClick={() => setBotDifficulty(b.id)}
-                        className="p-3 rounded-xl flex flex-col items-center gap-1 text-center relative"
-                      >
-                        <span className="text-3xl mb-1">{b.icon}</span>
-                        <span className="text-sm font-bold font-sans leading-none">{b.name}</span>
-                        <span className="text-[10px] font-semibold opacity-70">Elo {b.elo}</span>
-                      </SelectableCard>
-                    );
-                  })}
-                </div>
-              </div>
-              <div className="flex flex-col gap-2 border-t pt-4 border-cc-border-light">
-                <SectionHeader>Choose Side</SectionHeader>
-                <div className="grid grid-cols-3 gap-2">
-                  <SelectableCard
-                    isActive={botSide === "w"}
-                    onClick={() => setBotSide("w")}
-                    className="py-2 flex items-center justify-center gap-2 rounded-xl text-xs font-bold"
-                  >
-                    <span className="text-lg">⚪</span> Play White
-                  </SelectableCard>
-                  <SelectableCard
-                    isActive={botSide === "random"}
-                    onClick={() => setBotSide("random")}
-                    className="py-2 flex items-center justify-center gap-2 rounded-xl text-xs font-bold"
-                  >
-                    <span className="text-lg">🎲</span> Random
-                  </SelectableCard>
-                  <SelectableCard
-                    isActive={botSide === "b"}
-                    onClick={() => setBotSide("b")}
-                    className="py-2 flex items-center justify-center gap-2 rounded-xl text-xs font-bold"
-                  >
-                    <span className="text-lg">⚫</span> Play Black
-                  </SelectableCard>
-                </div>
-              </div>
-            </>
-          )}
-
-          {gameMode !== "online" && (
-            <div className="flex flex-col gap-2 border-t pt-4 border-cc-border-light">
-              <SectionHeader>Training Modes</SectionHeader>
-              <div className="flex items-center gap-2">
-                <SelectableCard
-                  isActive={isBlindfold}
-                  onClick={() => setIsBlindfold(!isBlindfold)}
-                  className="py-2 px-4 rounded-xl text-xs font-bold"
-                >
-                  Blindfold Mode
-                </SelectableCard>
-              </div>
-            </div>
-          )}
-
-          {gameMode === "online" ? (
-            <div className="mt-4">
-              <OnlineMatchmaker
-                joinedRoom={socketState.joinedRoom}
-                playerColor={socketState.playerColor}
-                inQueue={socketState.inQueue}
-                userRating={socketState.userRating}
-                roomCode={socketState.roomCode}
-                timeControl={socketState.timeControl}
-                onTimeControlChange={socketState.setTimeControl}
-                onRoomCodeChange={socketState.setRoomCode}
-                onJoinQueue={socketState.handleJoinQueue}
-                onLeaveQueue={socketState.handleLeaveQueue}
-                onJoinRoom={socketState.handleJoinOnlineRoom}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                let flip = false;
-                if (gameMode === "computer-black" || gameMode === "computer-white") {
-                  let side = botSide;
-                  if (side === "random") {
-                    side = Math.random() < 0.5 ? "w" : "b";
-                  }
-                  const finalMode = side === "w" ? "computer-black" : "computer-white";
-                  setGameMode(finalMode);
-                  flip = finalMode === "computer-white";
-                }
-                gameState.resetGameWithVariant(selectedVariant, flip);
-                setIsSetupComplete(true);
-              }}
-              className="w-full mt-4 py-4 rounded-xl text-white font-black text-xl tracking-wide cursor-pointer transition-all active:translate-y-[4px] bg-cc-green hover:bg-cc-green-hover shadow-[0_4px_0_var(--cc-green-dark)] active:shadow-none border border-transparent"
-            >
-              Play
-            </button>
-          )}
-        </Card>
+  if (isTransitioning) {
+    return (
+      <main className="min-h-screen bg-cc-bg-page py-8 px-4 flex flex-col items-center justify-center">
+        <div className="flex flex-col items-center gap-4 animate-pulse">
+          <div className="w-12 h-12 border-4 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-amber-500 font-serif text-lg tracking-widest uppercase">Setting up board...</span>
+        </div>
       </main>
     );
   }
@@ -636,70 +538,18 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     <main className="min-h-screen w-full flex flex-col justify-center items-center md:p-6 font-sans bg-cc-bg-page text-cc-text-primary">
       <div className="w-full  flex flex-col items-center justify-center">
         
-        <div className="w-full flex items-center justify-between gap-4 mb-6 header-container-responsive">
-          <div className="flex flex-col gap-1.5 items-start">
-            <div className="px-3 py-1.5 rounded-xl flex items-center gap-3 w-40 md:w-52 h-14 justify-between border bg-cc-bg-card border-cc-border">
-              <span className="font-bold text-sm md:text-base tracking-wide truncate max-w-[160px] md:max-w-[200px] text-cc-text-primary">
-                {socketState.selfPlayer ? `${socketState.selfPlayer.name} (${socketState.selfPlayer.rating})` : "You"}
-              </span>
-            </div>
-            {gameState.variant === "three-check" && (
-              <div className="text-[10px] text-red-500 font-extrabold uppercase tracking-wider ml-1">
-                Checks: {selfChecks} / 3
-              </div>
-            )}
-            <div className="w-28 md:w-36 h-11 md:h-12 rounded-xl flex items-center justify-center font-mono text-2xl md:text-3xl font-extrabold tracking-widest border bg-cc-bg-input border-cc-border text-cc-text-primary">
-              {formatTime(playerLeftTime)}
-            </div>
-          </div>
-
-          <GameStatusBar
-            turn={gameState.turn}
-            isCheckmate={gameState.game.isCheckmate()}
-            isDraw={gameState.game.isDraw()}
-            inCheck={gameState.game.inCheck()}
-            gameMode={gameMode}
-            joinedRoom={socketState.joinedRoom}
-            inQueue={socketState.inQueue}
-            userRating={socketState.userRating}
-          />
-
-          <div className="flex flex-col gap-1.5 items-end relative">
-            <div className="rounded-xl flex items-center justify-between w-40 md:w-52 h-14 overflow-hidden border bg-cc-bg-card border-cc-border relative z-10">
-              <div className="h-full w-11 md:w-14 flex items-center justify-center text-2xl bg-cc-bg-hover">
-                {gameMode.includes("computer") && activeBot ? activeBot.icon : "🤖"}
-              </div>
-              <span className="flex-1 font-bold text-sm md:text-base tracking-wide text-center truncate px-2 max-w-[130px] md:max-w-[170px] text-cc-text-primary">
-                {socketState.opponent ? `${socketState.opponent.name} (${socketState.opponent.rating})` : (gameMode === "online" ? "Opponent" : gameMode === "pvp" ? "Black" : activeBot ? `${activeBot.name} (${activeBot.elo})` : "AI")}
-              </span>
-            </div>
-            {gameMode.includes("computer") && activeBot && (
-              <div className="absolute -bottom-8 right-0 text-[10px] bg-cc-bg-sidebar border border-cc-border text-cc-text-secondary px-3 py-1.5 rounded-2xl rounded-tr-sm shadow-md whitespace-nowrap z-20 transition-all">
-                {activeBot.message}
-              </div>
-            )}
-            {gameState.variant === "three-check" && (
-              <div className="text-[10px] text-red-500 font-extrabold uppercase tracking-wider mr-1">
-                Checks: {oppChecks} / 3
-              </div>
-            )}
-            <div className="w-28 md:w-36 h-11 md:h-12 rounded-xl flex items-center justify-center font-mono text-2xl md:text-3xl font-extrabold tracking-widest border bg-cc-bg-input border-cc-border text-cc-text-primary">
-              {formatTime(playerRightTime)}
-            </div>
-          </div>
-        </div>
-
-        {openingName && (
-          <div className="mb-4 text-xs font-serif font-bold text-cc-text-secondary tracking-widest uppercase bg-cc-bg-surface px-4 py-1.5 rounded-full border border-cc-border-light">
-            {openingName}
-          </div>
-        )}
-
-        {gameMode === "online" && !socketState.connected && (
-          <div className="mb-4 bg-red-900/30 text-red-400 font-semibold px-6 py-2 rounded-xl text-sm border border-red-900/50 flex items-center gap-2 max-w-lg mx-auto w-full justify-center">
-            ⚠️ Disconnected from chess server. Attempting to reconnect...
-          </div>
-        )}
+        <GameHeader
+          gameMode={gameMode}
+          socketState={socketState}
+          gameState={gameState}
+          selfChecks={selfChecks}
+          oppChecks={oppChecks}
+          activeBot={activeBot}
+          playerLeftTimeStr={playerLeftTimeStr}
+          playerRightTimeStr={playerRightTimeStr}
+          serverClock={serverClock}
+          openingName={openingName}
+        />
 
         <div className="flex flex-col lg:flex-row items-center gap-4 justify-center w-full">
           <div className="order-3 lg:order-1 flex w-full lg:w-auto justify-center">
@@ -719,6 +569,25 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
               />
             </div>
             <div className={`chess-3d-scene flex items-center justify-center board-container-responsive aspect-square relative ${isBlindfold ? "blindfold-mode" : ""}`}>
+              {gameMode === "online" && (
+                <ConsentDialog
+                  type={socketState.consentRequest || socketState.consentPending}
+                  isPending={socketState.consentPending !== null}
+                  onAccept={() => {
+                    if (socketState.consentRequest === "undo") socketState.acceptUndo();
+                    if (socketState.consentRequest === "rematch") socketState.acceptRematch();
+                  }}
+                  onDecline={() => {
+                    if (socketState.consentRequest === "undo") socketState.declineUndo();
+                    if (socketState.consentRequest === "rematch") socketState.declineRematch();
+                  }}
+                  onCancel={() => {
+                    if (socketState.consentPending === "undo") socketState.cancelUndoRequest();
+                    if (socketState.consentPending === "rematch") socketState.cancelRematchRequest();
+                  }}
+                />
+              )}
+              
               <Board
                 position={gameState.fen}
                 flipped={gameState.flipped}
@@ -741,30 +610,20 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
                   return piece.startsWith(socketState.playerColor || "w");
                 }}
               />
+
+              {gameState.pendingPromotion && (
+                <PromotionPicker
+                  color={gameState.turn}
+                  onSelect={(piece) => gameState.resolvePromotion(piece, gameMode, socketState.joinedRoom, socketState.socket)}
+                  onCancel={gameState.cancelPromotion}
+                />
+              )}
                 
               {overlayConfig && (
-                <div className={`absolute inset-0 flex flex-col items-center justify-center text-center p-6 rounded-2xl border border-cc-border-light backdrop-blur-md transition-all duration-300 z-30 ${overlayConfig.bgClass}`}>
-                  <h3 className="text-3xl font-extrabold tracking-tight mb-2 drop-shadow-md">
-                    {overlayConfig.title}
-                  </h3>
-                  <p className="text-sm opacity-90 mb-6 max-w-xs font-sans">
-                    {overlayConfig.description}
-                  </p>
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setOverlayDismissed(true)}
-                      className={`px-4 py-2 text-xs font-semibold rounded-lg shadow-md cursor-pointer transition-colors ${overlayConfig.buttonClass}`}
-                    >
-                      Close Overlay
-                    </button>
-                    <button
-                      onClick={handleReset}
-                      className="px-4 py-2 text-xs font-semibold rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 shadow-md cursor-pointer border border-cc-border-light transition-colors"
-                    >
-                      New Match
-                    </button>
-                  </div>
-                </div>
+                <GameResultOverlay 
+                  config={overlayConfig} 
+                  onDismiss={() => setOverlayDismissed(true)} 
+                />
               )}
             </div>
           </div>

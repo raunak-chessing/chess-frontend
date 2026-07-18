@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import { gameApi, DailyGame } from "../api/gameApi";
 import { useGameState } from "../hooks/useGameState";
+import { useRef } from "react";
 import { Board } from "./Board";
 import { CapturedPieces } from "./CapturedPieces";
 import { GameStatusBar } from "./GameStatusBar";
@@ -10,6 +12,7 @@ import { GameControls } from "./GameControls";
 import MoveHistory from "./MoveHistory/MoveHistory";
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/Spinner";
+import { toast } from "react-hot-toast";
 
 interface DailyGameViewProps {
   gameId: string;
@@ -23,23 +26,26 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
   const gameState = useGameState();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [gameData, setGameData] = useState<any>(null);
+  const [gameData, setGameData] = useState<DailyGame | null>(null);
+
+  const setFenRef = useRef(gameState.setFen);
+  useEffect(() => {
+    setFenRef.current = gameState.setFen;
+  }, [gameState.setFen]);
 
   const fetchGame = useCallback(async () => {
     try {
-      const res = await fetch(`http://localhost:4001/api/games/daily/${gameId}`);
-      if (!res.ok) throw new Error("Failed to load daily game");
-      const data = await res.json();
+      const data = await gameApi.getDailyGame(gameId);
       setGameData(data);
       // We don't overwrite if the user just moved locally unless we want to reset.
       // But for initial load:
-      gameState.setFen(data.fen);
+      setFenRef.current(data.fen);
       setLoading(false);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err));
       setLoading(false);
     }
-  }, [gameId, gameState]);
+  }, [gameId]);
 
   useEffect(() => {
     fetchGame();
@@ -58,28 +64,27 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
         return false; // Not your turn
       }
 
-      // Try local move
+      // DailyGames can use PromotionPicker if we wire it up, but since it's custom logic:
       try {
-        const move = gameState.game.move({ from: source, to: target, promotion: "q" });
+        const moves = gameState.game.moves({ verbose: true });
+        const isPromotion = moves.some(m => m.from === source && m.to === target && m.promotion);
+        
+        // Wait, since DailyGameView has its own move handler, we would need to duplicate PromotionPicker.
+        // For now we'll stick to auto-queen here unless we refactor it to use useGameState's picker.
+        // Actually, just pass "q" if it's a promotion.
+        const move = gameState.game.move({ from: source, to: target, promotion: isPromotion ? "q" : undefined });
         if (!move) return false;
 
         const nextFen = gameState.game.fen();
         gameState.setFen(nextFen);
         
         // Post move to backend
-        fetch(`http://localhost:4001/api/games/daily/${gameId}/move`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ from: source, to: target, userId })
-        }).then(res => {
-          if (!res.ok) {
-            // Revert on error
+        gameApi.makeDailyMove(gameId, source, target)
+          .then(() => fetchGame())
+          .catch(() => {
             gameState.applyUndo();
-            alert("Move rejected by server.");
-          } else {
-            fetchGame();
-          }
-        });
+            toast.error("Move rejected by server. Your move has been reverted.");
+          });
         
         return true;
       } catch {

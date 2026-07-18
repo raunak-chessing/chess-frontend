@@ -47,10 +47,12 @@ export const PuzzleSolver = memo(function PuzzleSolver({
 
       const moveStr = `${source}${target}`;
       const correctMove = puzzle.moves[currentMoveIdx];
+      const expectedFromTo = correctMove.slice(0, 4);
+      const expectedPromotion = correctMove.length > 4 ? correctMove[4] : undefined;
 
-      if (moveStr === correctMove || moveStr + "q" === correctMove) {
+      if (moveStr === expectedFromTo) {
         try {
-          const move = localChess.move({ from: source, to: target, promotion: "q" });
+          const move = localChess.move({ from: source, to: target, promotion: expectedPromotion });
           if (move) {
             setBoardPosition(localChess.fen());
             const nextIdx = currentMoveIdx + 1;

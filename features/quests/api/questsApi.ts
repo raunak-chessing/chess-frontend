@@ -1,16 +1,23 @@
-export interface Quest {
-  id: string;
-  questId: string;
-  progress: number;
-  target: number;
-  completed: boolean;
-  expiresAt: string;
-}
+import { z } from 'zod';
+import { fetchApi } from '@/lib/api-client';
+
+export const QuestSchema = z.object({
+  id: z.string(),
+  questId: z.string(),
+  progress: z.number(),
+  target: z.number(),
+  completed: z.boolean(),
+  rewardClaimed: z.boolean().default(false),
+  expiresAt: z.string(),
+});
+export type Quest = z.infer<typeof QuestSchema>;
+
+export const QuestListSchema = z.array(QuestSchema);
 
 export const getActiveQuests = async (): Promise<Quest[]> => {
-  const response = await fetch('http://localhost:4001/api/quests/active', {
-    credentials: 'include',
-  });
-  if (!response.ok) throw new Error('Failed to fetch quests');
-  return response.json();
+  return fetchApi('/api/quests/active').then(res => QuestListSchema.parse(res));
+};
+
+export const claimQuest = async (questId: string): Promise<{ success: boolean, reward: { gold: number, aetherium: number } }> => {
+  return fetchApi(`/api/quests/${questId}/claim`);
 };
