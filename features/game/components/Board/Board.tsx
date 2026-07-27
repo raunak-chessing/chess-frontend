@@ -6,6 +6,7 @@ const Chessboard = dynamic(() => import("react-chessboard").then(mod => mod.Ches
 import type { ChessboardOptions } from "react-chessboard";
 import type { BoardProps } from "./Board.types";
 import { BOARD_THEME } from "../../constants/boardTheme";
+import { Chess } from "chess.js";
 
 const Board = memo(function Board({
   position,
@@ -20,9 +21,22 @@ const Board = memo(function Board({
 
   const handlePieceDrop = useCallback<NonNullable<ChessboardOptions["onPieceDrop"]>>(
     ({ piece, sourceSquare, targetSquare }) => {
-      return onPieceDrop(sourceSquare, targetSquare ?? "", piece.pieceType);
+      if (!targetSquare) return false;
+      // Client-side validation to prevent sending invalid moves to the server
+      try {
+        const chess = new Chess(position);
+        const move = chess.move({
+          from: sourceSquare,
+          to: targetSquare,
+          promotion: piece.pieceType[1]?.toLowerCase() ?? 'q',
+        });
+        if (!move) return false;
+      } catch (e) {
+        return false;
+      }
+      return onPieceDrop(sourceSquare, targetSquare, piece.pieceType);
     },
-    [onPieceDrop],
+    [onPieceDrop, position],
   );
 
   const chessboardOptions = useMemo<ChessboardOptions>(

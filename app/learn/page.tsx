@@ -10,6 +10,7 @@ import {
   AcademyLesson,
 } from "@/features/academy";
 import { fetchApi } from "@/lib/api-client";
+import { z } from "zod";
 
 type LearnViewState = "dashboard" | "lesson" | "explorer";
 
@@ -22,7 +23,7 @@ export default function LearnPage() {
 
   // Fetch progress from backend
   useEffect(() => {
-    fetchApi("/api/academy/progress")
+    fetchApi(z.array(z.string()), "/api/academy/progress")
       .then((data) => {
         if (Array.isArray(data)) {
           setCompletedLessons(data);
@@ -44,9 +45,9 @@ export default function LearnPage() {
       setCompletedLessons((prev) => [...prev, lessonId]);
 
       // Call API backend to complete lesson (saves to PostgreSQL)
-      fetchApi(`/api/academy/complete/${lessonId}`, {
+      fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/academy/complete/${lessonId}`, {
         method: "POST",
-      }).catch(() => {});
+      }).then(() => {});
     }
   };
 

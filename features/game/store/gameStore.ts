@@ -10,6 +10,7 @@ interface GameStoreState {
   viewMoveIndex: number | null;
   pendingPromotion: { from: string; to: string } | null;
   isFlipped: boolean;
+  premoves: string[];
   
   setFen: (fen: string) => void;
   setVariant: (variant: GameVariant) => void;
@@ -19,6 +20,7 @@ interface GameStoreState {
   setViewMoveIndex: (index: number | null) => void;
   setPendingPromotion: (promo: { from: string; to: string } | null) => void;
   setIsFlipped: (flipped: boolean) => void;
+  setPremoves: (premoves: string[]) => void;
   resetStore: () => void;
 }
 
@@ -31,6 +33,7 @@ const initialState = {
   viewMoveIndex: null,
   pendingPromotion: null,
   isFlipped: false,
+  premoves: [],
 };
 
 export const useGameStore = create<GameStoreState>((set) => ({
@@ -44,6 +47,7 @@ export const useGameStore = create<GameStoreState>((set) => ({
   setViewMoveIndex: (index) => set({ viewMoveIndex: index }),
   setPendingPromotion: (promo) => set({ pendingPromotion: promo }),
   setIsFlipped: (flipped) => set({ isFlipped: flipped }),
+  setPremoves: (premoves) => set({ premoves }),
   
   resetStore: () => set(initialState),
 }));

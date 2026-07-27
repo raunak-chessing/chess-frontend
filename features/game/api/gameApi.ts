@@ -42,15 +42,15 @@ export const AnalysisSchema = z.object({
 });
 
 export const gameApi = {
-  getDailyGame: (gameId: string) => fetchApi(`/api/games/daily/${gameId}`).then(res => DailyGameSchema.parse(res)),
+  getDailyGame: (gameId: string) => fetchApi(DailyGameSchema, `/api/games/daily/${gameId}`),
   makeDailyMove: (gameId: string, from: string, to: string) => 
-    fetchApi(`/api/games/daily/${gameId}/move`, {
+    fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/games/daily/${gameId}/move`, {
       method: 'POST',
       body: JSON.stringify({ from, to }),
     }),
-  getMyDailyGames: (userId: string) => fetchApi(`/api/games/daily/my-games?userId=${userId}`).then(res => DailyGameListSchema.parse(res)),
-  analyzePgn: (pgn: string) => fetchApi(`/api/analysis/pgn`, {
+  getMyDailyGames: (userId: string) => fetchApi(DailyGameListSchema, `/api/games/daily/my-games?userId=${userId}`),
+  analyzePgn: (pgn: string) => fetchApi(AnalysisSchema, `/api/analysis/pgn`, {
     method: 'POST',
     body: JSON.stringify({ pgn }),
-  }).then(res => AnalysisSchema.parse(res)),
+  }),
 };

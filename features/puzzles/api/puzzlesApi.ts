@@ -44,43 +44,39 @@ import { fetchApi } from '@/lib/api-client';
 
 export const puzzlesApi = {
   getRatedPuzzle: async (): Promise<Puzzle> => {
-    const res = await fetchApi('/api/puzzles/rated');
-    return PuzzleSchema.parse(res);
+    return fetchApi(PuzzleSchema, '/api/puzzles/rated');
   },
 
-  getCustomPuzzles: async (theme: string, limit: number = 10): Promise<Puzzle[]> => {
-    const res = await fetchApi(`/api/puzzles/custom?theme=${theme}&limit=${limit}`);
-    return z.array(PuzzleSchema).parse(res);
+  submitRatedPuzzle: async (puzzleId: string, success: boolean, timeSpentMs: number): Promise<PuzzleResult> => {
+    return fetchApi(PuzzleResultSchema, `/api/puzzles/rated/${puzzleId}/submit`, {
+      method: 'POST',
+      body: JSON.stringify({ success, timeSpentMs }),
+    });
   },
 
   getDailyPuzzle: async (): Promise<DailyPuzzle> => {
-    const res = await fetchApi('/api/puzzles/daily');
-    return DailyPuzzleSchema.parse(res);
+    return fetchApi(DailyPuzzleSchema, '/api/puzzles/daily');
   },
 
-  getDailyPuzzleComments: async (dailyPuzzleId: string): Promise<DailyPuzzleComment[]> => {
-    const res = await fetchApi(`/api/puzzles/daily/${dailyPuzzleId}/comments`);
-    return z.array(DailyPuzzleCommentSchema).parse(res);
+  getDailyPuzzleComments: async (puzzleId: string): Promise<DailyPuzzleComment[]> => {
+    return fetchApi(z.array(DailyPuzzleCommentSchema), `/api/puzzles/daily/${puzzleId}/comments`);
   },
 
-  addDailyPuzzleComment: async (dailyPuzzleId: string, content: string): Promise<DailyPuzzleComment> => {
-    const res = await fetchApi(`/api/puzzles/daily/${dailyPuzzleId}/comments`, {
+  addDailyPuzzleComment: async (puzzleId: string, content: string): Promise<DailyPuzzleComment> => {
+    return fetchApi(DailyPuzzleCommentSchema, `/api/puzzles/daily/${puzzleId}/comments`, {
       method: 'POST',
       body: JSON.stringify({ content }),
     });
-    return DailyPuzzleCommentSchema.parse(res);
   },
 
   getRushBatch: async (limit: number = 20): Promise<Puzzle[]> => {
-    const res = await fetchApi(`/api/puzzles/rush?limit=${limit}`);
-    return z.array(PuzzleSchema).parse(res);
+    return fetchApi(z.array(PuzzleSchema), `/api/puzzles/rush?limit=${limit}`);
   },
 
   submitAttempt: async (puzzleId: string, success: boolean, timeSpentMs: number): Promise<PuzzleResult> => {
-    const res = await fetchApi('/api/puzzles/solve', {
+    return fetchApi(PuzzleResultSchema, '/api/puzzles/solve', {
       method: 'POST',
       body: JSON.stringify({ puzzleId, success, timeSpentMs }),
     });
-    return PuzzleResultSchema.parse(res);
   }
 };

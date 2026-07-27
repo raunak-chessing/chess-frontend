@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { Socket } from "socket.io-client";
 import { getSocket, connectSocket } from "@/lib/socket-client";
+type Socket = ReturnType<typeof getSocket>;
 import type { GameActions } from "./useGameState";
 import { authClient } from "@/lib/auth-client";
 import type { ChessUser } from "@/types/auth.types";
@@ -121,12 +121,7 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
       setOpponent(null);
     };
 
-    const onGameStart = (data: {
-      white: { id: string; name: string; rating: number };
-      black: { id: string; name: string; rating: number };
-      whiteTimeLeftMs: number;
-      blackTimeLeftMs: number;
-    }) => {
+    const onGameStart = (data: any) => {
       handlers.resetGame();
       if (data?.white && data?.black) {
         setSelfPlayer(playerColor === "b" ? data.black : data.white);
@@ -198,11 +193,11 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
       handlers.onTimeout(timeoutColor);
     };
 
-    socket.on("roomJoined", onRoomJoined);
-    socket.on("gameStart", onGameStart);
-    socket.on("opponentMove", onOpponentMove);
+    socket.on("match_found", onRoomJoined);
+    socket.on("game_state", onGameStart);
+    socket.on("move_made", onOpponentMove);
     socket.on("opponentUndo", onOpponentUndo);
-    socket.on("opponentReset", onOpponentReset);
+    socket.on("opponentReset", onGameReset);
     socket.on("opponentDisconnected", handlers.onOpponentDisconnected);
     socket.on("opponentResigned", handlers.onOpponentResigned);
     socket.on("gameTimeout", onTimeout);
@@ -213,14 +208,14 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
     socket.on("rematchAccepted", onRematchAccepted);
     socket.on("rematchDeclined", onRematchDeclined);
     socket.on("queueJoined", onQueueJoined);
-    socket.on("queueLeft", onQueueLeft);
+    socket.on("left_matchmaking", onQueueLeft);
 
     return () => {
-      socket.off("roomJoined", onRoomJoined);
-      socket.off("gameStart", onGameStart);
-      socket.off("opponentMove", onOpponentMove);
+      socket.off("match_found", onRoomJoined);
+      socket.off("game_state", onGameStart);
+      socket.off("move_made", onOpponentMove);
       socket.off("opponentUndo", onOpponentUndo);
-      socket.off("opponentReset", onOpponentReset);
+      socket.off("opponentReset", onGameReset);
       socket.off("opponentDisconnected", handlers.onOpponentDisconnected);
       socket.off("opponentResigned", handlers.onOpponentResigned);
       socket.off("gameTimeout", onTimeout);
@@ -231,7 +226,7 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
       socket.off("rematchAccepted", onRematchAccepted);
       socket.off("rematchDeclined", onRematchDeclined);
       socket.off("queueJoined", onQueueJoined);
-      socket.off("queueLeft", onQueueLeft);
+      socket.off("left_matchmaking", onQueueLeft);
     };
   }, [socket, playerColor, handlers]);
 

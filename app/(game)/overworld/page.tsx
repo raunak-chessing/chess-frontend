@@ -5,6 +5,15 @@ import { useRouter } from 'next/navigation';
 import { WorldMap } from '../../../features/overworld/components/WorldMap/WorldMap';
 import { useSocket } from '../../../lib/socket-client';
 import { fetchApi } from '@/lib/api-client';
+import { z } from 'zod';
+
+const HexSchema = z.object({
+  id: z.string(),
+  q: z.number(),
+  r: z.number(),
+  s: z.number(),
+  terrain: z.string(),
+}).passthrough();
 
 export default function OverworldPage() {
   const [hexes, setHexes] = useState<any[]>([]);
@@ -15,7 +24,7 @@ export default function OverworldPage() {
 
   useEffect(() => {
     // Fetch map state with credentials for Fog of War (userId extraction)
-    fetchApi('/api/overworld/map')
+    fetchApi(z.array(HexSchema), '/api/overworld/map')
       .then(data => {
         setHexes(data);
         setLoading(false);

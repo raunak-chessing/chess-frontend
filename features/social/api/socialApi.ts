@@ -54,28 +54,28 @@ export type LeaderboardsData = z.infer<typeof LeaderboardsDataSchema>;
 import { fetchApi } from '@/lib/api-client';
 
 export const socialApi = {
-  searchUsers: (query: string) => fetchApi(`/api/users/search?q=${encodeURIComponent(query)}`).then((res: unknown) => z.array(userSchema).parse(res)),
+  searchUsers: (query: string) => fetchApi(z.array(userSchema), `/api/users/search?q=${encodeURIComponent(query)}`),
   
-  getGlobalLeaderboard: () => fetchApi('/api/users/leaderboard/global').then(res => LeaderboardsDataSchema.parse(res)),
+  getGlobalLeaderboard: () => fetchApi(LeaderboardsDataSchema, '/api/users/leaderboard/global'),
   
-  getFriends: () => fetchApi('/api/social/friends').then((res: unknown) => z.array(userSchema).parse(res)),
+  getFriends: () => fetchApi(z.array(userSchema), '/api/social/friends'),
   
-  getRequests: () => fetchApi('/api/social/requests').then((res: unknown) => requestSchema.parse(res)),
+  getRequests: () => fetchApi(requestSchema, '/api/social/requests'),
   
-  sendFriendRequest: (userId: string) => fetchApi(`/api/social/friends/request/${userId}`, { method: 'POST' }),
+  sendFriendRequest: (userId: string) => fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/friends/request/${userId}`, { method: 'POST' }),
   
-  acceptFriendRequest: (requestId: string) => fetchApi(`/api/social/friends/accept/${requestId}`, { method: 'POST' }),
+  acceptFriendRequest: (requestId: string) => fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/friends/accept/${requestId}`, { method: 'POST' }),
   
-  declineFriendRequest: (requestId: string) => fetchApi(`/api/social/friends/request/${requestId}`, { method: 'DELETE' }),
+  declineFriendRequest: (requestId: string) => fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/friends/request/${requestId}`, { method: 'DELETE' }),
   
-  getChallenges: () => fetchApi('/api/social/challenges').then((res: unknown) => z.array(challengeSchema).parse(res)),
+  getChallenges: () => fetchApi(z.array(challengeSchema), '/api/social/challenges'),
   
   sendChallenge: (userId: string, data: { timeControl: string, colorPref: string }) => 
-    fetchApi(`/api/social/challenge/${userId}`, { method: 'POST', body: JSON.stringify(data) }),
+    fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/challenge/${userId}`, { method: 'POST', body: JSON.stringify(data) }),
     
   acceptChallenge: (challengeId: string) => 
-    fetchApi(`/api/social/challenge/${challengeId}/accept`, { method: 'POST' }),
+    fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/challenge/${challengeId}/accept`, { method: 'POST' }),
     
   declineChallenge: (challengeId: string) => 
-    fetchApi(`/api/social/challenge/${challengeId}`, { method: 'DELETE' }),
+    fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/challenge/${challengeId}`, { method: 'DELETE' }),
 };

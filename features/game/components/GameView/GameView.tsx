@@ -153,7 +153,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     return success;
   }, [gameState, gameMode, localResult, socketState]);
 
-  const { isListening, toggleListening } = useVoiceControl(handleVoiceMove);
+  const { isListening, toggleListening } = useVoiceControl(gameState.game.fen(), handleVoiceMove);
 
   const historyLength = gameState.game.history().length;
   const lastMoveSan = historyLength > 0 ? gameState.game.history()[historyLength - 1] : null;

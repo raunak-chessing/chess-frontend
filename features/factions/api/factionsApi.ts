@@ -16,11 +16,11 @@ export type Faction = z.infer<typeof FactionSchema>;
 export const FactionListSchema = z.array(FactionSchema);
 
 export const getFactions = async (): Promise<Faction[]> => {
-  return fetchApi('/api/factions').then(res => FactionListSchema.parse(res));
+  return fetchApi(FactionListSchema, '/api/factions');
 };
 
 export const joinFaction = async (factionId: string): Promise<void> => {
-  return fetchApi('/api/factions/join', {
+  return fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), '/api/factions/join', {
     method: 'POST',
     body: JSON.stringify({ factionId }),
   });

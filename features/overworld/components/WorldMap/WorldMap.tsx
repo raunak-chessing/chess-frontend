@@ -122,13 +122,38 @@ export const WorldMap = ({ hexes, onInitiateAttack }: { hexes: any[], onInitiate
               <div className={`w-3 h-3 rounded-full ${selectedHex.controllingFaction ? (
                 selectedHex.controllingFaction.name === 'Iron Syndicate' ? 'bg-red-500' :
                 selectedHex.controllingFaction.name === 'Celestial Order' ? 'bg-blue-500' :
-                'bg-purple-500'
+                'bg-amber-500' // updated mapping
               ) : 'bg-gray-500'}`} />
               <span className="font-semibold text-lg">
                 {selectedHex.controllingFaction ? selectedHex.controllingFaction.name : 'Unclaimed'}
               </span>
             </div>
           </div>
+
+          {selectedHex.terrain !== 'UNKNOWN' && (
+            <>
+              <div className="mb-4">
+                <div className="flex justify-between items-center mb-1">
+                  <h3 className="text-xs text-gray-500 uppercase tracking-widest">Fortification HP</h3>
+                  <span className="text-xs font-mono text-gray-300">{selectedHex.hp ?? 10000} / {selectedHex.maxHp ?? 10000}</span>
+                </div>
+                <div className="w-full bg-gray-800 rounded-full h-2">
+                  <div className={`h-2 rounded-full ${(selectedHex.hp ?? 10000) < 5000 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.max(0, Math.min(100, ((selectedHex.hp ?? 10000) / (selectedHex.maxHp ?? 10000)) * 100))}%` }}></div>
+                </div>
+              </div>
+
+              {selectedHex.resourceType && (
+                <div className="mb-4">
+                  <h3 className="text-xs text-gray-500 uppercase tracking-widest mb-1">Resource Node</h3>
+                  <div className="flex items-center gap-2 bg-gray-800/50 p-2 rounded border border-gray-700">
+                    <span className="text-lg">{selectedHex.resourceType === 'GOLD' ? '🪙' : '🔮'}</span>
+                    <span className="font-semibold">{selectedHex.resourceType}</span>
+                    <span className="text-green-400 font-mono text-sm ml-auto">+{selectedHex.resourceYield}/hr</span>
+                  </div>
+                </div>
+              )}
+            </>
+          )}
 
           <button 
             onClick={() => onInitiateAttack?.(selectedHex.id)}

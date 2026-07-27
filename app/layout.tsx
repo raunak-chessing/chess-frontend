@@ -5,6 +5,7 @@ import { Navbar } from "@/components/layout/Navbar";
 import { Toaster } from "react-hot-toast";
 import { FriendsSidebar } from "@/features/social/components/FriendsSidebar/FriendsSidebar";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { ColosseumModal } from "@/features/social/components/ColosseumModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -32,6 +33,7 @@ export default function RootLayout({
           </ErrorBoundary>
         </main>
         <FriendsSidebar />
+        <ColosseumModal />
       </body>
     </html>
   );
