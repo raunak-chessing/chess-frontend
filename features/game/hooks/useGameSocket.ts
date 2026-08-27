@@ -1,31 +1,36 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { getSocket, connectSocket } from "@/lib/socket-client";
 type Socket = ReturnType<typeof getSocket>;
 import type { GameActions } from "./useGameState";
 import { authClient } from "@/lib/auth-client";
 import type { ChessUser } from "@/types/auth.types";
+import { classifyTimeControl } from "@/lib/timeControl";
+import type { GameVariant } from "../types/game.types";
 
 interface SocketEventHandlers {
-  applyMove: (from: string, to?: string, promotion?: string) => boolean;
   applyUndo: GameActions["applyUndo"];
-  performUndo: GameActions["performUndo"];
   resetGame: GameActions["resetGame"];
+  syncGameState?: (pgn: string, options?: { announceMove?: boolean }) => void;
+  setVariant?: GameActions["setVariant"];
   onOpponentDisconnected: () => void;
   onOpponentResigned: () => void;
-  onTimeout: (color: "w" | "b") => void;
+  onTimeout: (winner: "w" | "b") => void;
+  onRematchAccepted?: (newGameId?: string) => void;
 }
 
-interface UseGameSocketReturn {
+export interface UseGameSocketReturn {
   socket: Socket;
-  playerColor: "w" | "b" | null;
+  playerColor: "w" | "b" | "s" | null;
   joinedRoom: string;
   inQueue: boolean;
   roomCode: string;
   userRating: number;
   timeControl: string;
   setTimeControl: (tc: string) => void;
+  variant: GameVariant;
+  setVariant: (variant: GameVariant) => void;
   connected: boolean;
   selfPlayer: { name: string; rating: number } | null;
   opponent: { name: string; rating: number } | null;
@@ -37,28 +42,34 @@ interface UseGameSocketReturn {
   serverWhiteMs: number;
   serverBlackMs: number;
   serverSyncTimestamp: number;
-  consentRequest: "undo" | "rematch" | null;
-  consentPending: "undo" | "rematch" | null;
+  consentRequest: "undo" | "rematch" | "draw" | null;
+  consentPending: "undo" | "rematch" | "draw" | null;
   requestUndo: () => void;
   acceptUndo: () => void;
+  requestAbort: () => void;
   declineUndo: () => void;
   cancelUndoRequest: () => void;
   requestRematch: () => void;
   acceptRematch: () => void;
   declineRematch: () => void;
   cancelRematchRequest: () => void;
+  requestDraw: () => void;
+  acceptDraw: () => void;
+  declineDraw: () => void;
+  cancelDrawRequest: () => void;
 }
 
 export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketReturn {
   const { data: session } = authClient.useSession();
-  const [playerColor, setPlayerColor] = useState<"w" | "b" | null>(null);
+  const [playerColor, setPlayerColor] = useState<"w" | "b" | "s" | null>(null);
   const [joinedRoom, setJoinedRoom] = useState<string>("");
   const [inQueue, setInQueue] = useState<boolean>(false);
   const [roomCode, setRoomCode] = useState<string>("");
   const [timeControl, setTimeControl] = useState<string>("10|0");
+  const [variant, setVariant] = useState<GameVariant>("standard");
 
-  const [consentRequest, setConsentRequest] = useState<"undo" | "rematch" | null>(null);
-  const [consentPending, setConsentPending] = useState<"undo" | "rematch" | null>(null);
+  const [consentRequest, setConsentRequest] = useState<"undo" | "rematch" | "draw" | null>(null);
+  const [consentPending, setConsentPending] = useState<"undo" | "rematch" | "draw" | null>(null);
 
   const [serverWhiteMs, setServerWhiteMs] = useState(600000);
   const [serverBlackMs, setServerBlackMs] = useState(600000);
@@ -66,24 +77,17 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
 
   const getRatingForTimeControl = useCallback((tc: string): number => {
     if (!session?.user) return 1200;
-    const user = session.user as ChessUser;
-    const tcLower = tc.toLowerCase();
-    if (tcLower.includes("day")) {
-      return user.ratingDaily ?? 1200;
-    }
-    const parts = tc.split(/[|+]/);
-    if (parts.length === 0) return user.ratingRapid ?? 1200;
-    const base = parseFloat(parts[0]);
-    if (isNaN(base)) return user.ratingRapid ?? 1200;
-    const inc = parts.length > 1 ? parseFloat(parts[1]) : 0;
-    const total = base * 60 + 40 * (isNaN(inc) ? 0 : inc);
+    const user = session.user as unknown as ChessUser;
 
-    if (total < 180) {
-      return user.ratingBullet ?? 1200;
-    } else if (total < 600) {
-      return user.ratingBlitz ?? 1200;
-    } else {
-      return user.ratingRapid ?? 1200;
+    switch (classifyTimeControl(tc)) {
+      case "Daily":
+        return user.ratingDaily ?? 1200;
+      case "Bullet":
+        return user.ratingBullet ?? 1200;
+      case "Blitz":
+        return user.ratingBlitz ?? 1200;
+      case "Rapid":
+        return user.ratingRapid ?? 1200;
     }
   }, [session]);
 
@@ -98,7 +102,7 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
     const onConnect = () => {
       setConnected(true);
       if (joinedRoom && socket) {
-        socket.emit("rejoinRoom", { room: joinedRoom });
+        socket.emit("join_game", { room: joinedRoom });
       }
     };
     const onDisconnect = () => setConnected(false);
@@ -113,36 +117,86 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
   }, [socket, joinedRoom]);
 
   useEffect(() => {
-    const onRoomJoined = (data: { color: "w" | "b"; room: string }) => {
-      setPlayerColor(data.color);
-      setJoinedRoom(data.room);
+    const onRoomJoined = (data: { gameId: string; whitePlayerId?: string; blackPlayerId?: string }) => {
+      const myId = session?.user?.id;
+      let color: "w" | "b" | "s" | null = null;
+      if (myId && data.whitePlayerId && data.blackPlayerId) {
+        color = data.whitePlayerId === myId ? "w" : data.blackPlayerId === myId ? "b" : "s";
+      }
+      setPlayerColor(color);
+      setJoinedRoom(data.gameId);
       setInQueue(false);
       setSelfPlayer(null);
       setOpponent(null);
+      if (socket && data.gameId) {
+        socket.emit("join_game", { room: data.gameId });
+      }
     };
 
     const onGameStart = (data: any) => {
       handlers.resetGame();
-      if (data?.white && data?.black) {
-        setSelfPlayer(playerColor === "b" ? data.black : data.white);
-        setOpponent(playerColor === "b" ? data.white : data.black);
+      
+      let determinedColor: "w" | "b" | "s" | null = playerColor;
+      const myId = session?.user?.id;
+      
+      if (myId && data.whitePlayerId && data.blackPlayerId) {
+        if (data.whitePlayerId === myId) {
+          determinedColor = "w";
+        } else if (data.blackPlayerId === myId) {
+          determinedColor = "b";
+        } else {
+          determinedColor = "s";
+        }
+        setPlayerColor(determinedColor);
       }
-      if (data?.whiteTimeLeftMs !== undefined) {
+
+      if (data?.white && data?.black) {
+        setSelfPlayer(determinedColor === "b" ? data.black : data.white);
+        setOpponent(determinedColor === "b" ? data.white : data.black);
+      }
+      
+      if (data?.serverWhiteMs !== undefined) {
+        setServerWhiteMs(data.serverWhiteMs);
+        setServerBlackMs(data.serverBlackMs);
+        setServerSyncTimestamp(data.serverSyncTimestamp || Date.now());
+      } else if (data?.whiteTimeLeftMs !== undefined) {
         setServerWhiteMs(data.whiteTimeLeftMs);
         setServerBlackMs(data.blackTimeLeftMs);
         setServerSyncTimestamp(Date.now());
       }
+
+      if (data?.variant && handlers.setVariant) {
+        handlers.setVariant(data.variant as GameVariant);
+      }
+
+      if (data?.pgn && handlers.syncGameState) {
+        handlers.syncGameState(data.pgn);
+      }
     };
 
-    const onOpponentMove = (data: { from: string; to: string; promotion?: string; fen: string; whiteTimeLeftMs: number; blackTimeLeftMs: number }) => {
-      handlers.applyMove(data.from, data.to, data.promotion);
-      setServerWhiteMs(data.whiteTimeLeftMs);
-      setServerBlackMs(data.blackTimeLeftMs);
-      setServerSyncTimestamp(Date.now());
+    const onOpponentMove = (data: { pgn: string; fen: string; whiteTimeLeftMs?: number; blackTimeLeftMs?: number; serverWhiteMs?: number; serverBlackMs?: number; serverSyncTimestamp?: number }) => {
+      if (data.pgn && handlers.syncGameState) {
+        handlers.syncGameState(data.pgn, { announceMove: true });
+      }
+      if (data.serverWhiteMs !== undefined) {
+        setServerWhiteMs(data.serverWhiteMs);
+        setServerBlackMs(data.serverBlackMs || 0);
+        setServerSyncTimestamp(data.serverSyncTimestamp || Date.now());
+      } else if (data.whiteTimeLeftMs !== undefined) {
+        setServerWhiteMs(data.whiteTimeLeftMs);
+        setServerBlackMs(data.blackTimeLeftMs || 0);
+        setServerSyncTimestamp(Date.now());
+      }
     };
 
-    const onOpponentUndo = () => {
-      handlers.applyUndo();
+    const onOpponentUndo = (data: { fen: string; pgn: string }) => {
+      setConsentPending(null);
+      setConsentRequest(null);
+      if (handlers.syncGameState) {
+        handlers.syncGameState(data.pgn);
+      } else {
+        handlers.applyUndo();
+      }
     };
 
     const onGameReset = () => {
@@ -150,27 +204,23 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
     };
 
     const onUndoRequested = () => setConsentRequest("undo");
-    const onUndoAccepted = () => {
-      setConsentPending(null);
-      const { undone, prevFrom, prevTo, fen } = handlers.performUndo();
-      if (undone) {
-        socket.emit("executeUndo", {
-          room: joinedRoom,
-          fen,
-          from: prevFrom,
-          to: prevTo,
-        });
-      }
-    };
     const onUndoDeclined = () => setConsentPending(null);
 
     const onRematchRequested = () => setConsentRequest("rematch");
-    const onRematchAccepted = () => {
+    const onRematchAccepted = (data?: any) => {
       setConsentPending(null);
       setConsentRequest(null);
-      handlers.resetGame();
+      if (handlers.onRematchAccepted) {
+        handlers.onRematchAccepted(data?.newGameId);
+      } else {
+        handlers.resetGame(); // Fallback for local/computer games
+      }
     };
     const onRematchDeclined = () => setConsentPending(null);
+
+    const onDrawOffered = () => setConsentRequest("draw");
+    // "game_over" will handle accepted draw, but we also handle specific events if needed
+    const onDrawDeclined = () => setConsentPending(null);
 
     const onOpponentDisconnected = () => {
       handlers.onOpponentDisconnected();
@@ -202,11 +252,13 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
     socket.on("opponentResigned", handlers.onOpponentResigned);
     socket.on("gameTimeout", onTimeout);
     socket.on("undoRequested", onUndoRequested);
-    socket.on("undoAccepted", onUndoAccepted);
     socket.on("undoDeclined", onUndoDeclined);
     socket.on("rematchRequested", onRematchRequested);
     socket.on("rematchAccepted", onRematchAccepted);
     socket.on("rematchDeclined", onRematchDeclined);
+    socket.on("draw_offered", onDrawOffered);
+    socket.on("draw_declined", onDrawDeclined);
+    socket.on("game_aborted", handlers.onOpponentResigned);
     socket.on("queueJoined", onQueueJoined);
     socket.on("left_matchmaking", onQueueLeft);
 
@@ -220,31 +272,36 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
       socket.off("opponentResigned", handlers.onOpponentResigned);
       socket.off("gameTimeout", onTimeout);
       socket.off("undoRequested", onUndoRequested);
-      socket.off("undoAccepted", onUndoAccepted);
       socket.off("undoDeclined", onUndoDeclined);
       socket.off("rematchRequested", onRematchRequested);
       socket.off("rematchAccepted", onRematchAccepted);
       socket.off("rematchDeclined", onRematchDeclined);
+      socket.off("draw_offered", onDrawOffered);
+      socket.off("draw_declined", onDrawDeclined);
+      socket.off("game_aborted", handlers.onOpponentResigned); // Treat abort like resign for UI termination right now, or maybe it should be a custom handler? For now onOpponentResigned is fine.
       socket.off("queueJoined", onQueueJoined);
       socket.off("left_matchmaking", onQueueLeft);
     };
   }, [socket, playerColor, handlers]);
 
   const handleJoinOnlineRoom = useCallback(() => {
-    if (socket && roomCode.trim() !== "") {
-      socket.emit("joinRoom", { room: roomCode.trim() });
+    const room = roomCode.trim();
+    if (socket && room !== "") {
+      socket.emit("join_game", { room });
+      setJoinedRoom(room);
     }
   }, [socket, roomCode]);
 
   const handleJoinQueue = useCallback(() => {
     if (socket) {
-      socket.emit("joinQueue", { timeControl });
+      socket.emit("join_matchmaking", { timeControl, variant });
+      setInQueue(true);
     }
-  }, [socket, timeControl]);
+  }, [socket, timeControl, variant]);
 
   const handleLeaveQueue = useCallback(() => {
     if (socket) {
-      socket.emit("leaveQueue");
+      socket.emit("leave_matchmaking");
     }
   }, [socket]);
 
@@ -262,8 +319,7 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
   const acceptUndo = useCallback(() => {
     socket.emit("acceptUndo", { room: joinedRoom });
     setConsentRequest(null);
-    handlers.applyUndo();
-  }, [socket, joinedRoom, handlers]);
+  }, [socket, joinedRoom]);
 
   const declineUndo = useCallback(() => {
     socket.emit("declineUndo", { room: joinedRoom });
@@ -294,35 +350,105 @@ export function useGameSocket(handlers: SocketEventHandlers): UseGameSocketRetur
     setConsentPending(null);
   }, []);
 
-  return {
-    socket,
-    playerColor,
-    joinedRoom,
-    inQueue,
-    roomCode,
-    userRating: currentRating,
-    timeControl,
-    setTimeControl,
-    connected,
-    selfPlayer,
-    opponent,
-    setRoomCode,
-    handleJoinOnlineRoom,
-    handleJoinQueue,
-    handleLeaveQueue,
-    handleClaimTimeout,
-    serverWhiteMs,
-    serverBlackMs,
-    serverSyncTimestamp,
-    consentRequest,
-    consentPending,
-    requestUndo,
-    acceptUndo,
-    declineUndo,
-    cancelUndoRequest,
-    requestRematch,
-    acceptRematch,
-    declineRematch,
-    cancelRematchRequest,
-  };
+  const requestDraw = useCallback(() => {
+    socket.emit("offer_draw", { gameId: joinedRoom });
+    setConsentPending("draw");
+  }, [socket, joinedRoom]);
+
+  const acceptDraw = useCallback(() => {
+    socket.emit("accept_draw", { gameId: joinedRoom });
+    setConsentRequest(null);
+  }, [socket, joinedRoom]);
+
+  const declineDraw = useCallback(() => {
+    socket.emit("decline_draw", { gameId: joinedRoom });
+    setConsentRequest(null);
+  }, [socket, joinedRoom]);
+
+  const cancelDrawRequest = useCallback(() => {
+    setConsentPending(null);
+  }, []);
+
+  const requestAbort = useCallback(() => {
+    socket.emit("abort", { gameId: joinedRoom });
+  }, [socket, joinedRoom]);
+
+  return useMemo(
+    () => ({
+      socket,
+      playerColor,
+      joinedRoom,
+      inQueue,
+      roomCode,
+      userRating: currentRating,
+      timeControl,
+      setTimeControl,
+      variant,
+      setVariant,
+      connected,
+      selfPlayer,
+      opponent,
+      setRoomCode,
+      handleJoinOnlineRoom,
+      handleJoinQueue,
+      handleLeaveQueue,
+      handleClaimTimeout,
+      serverWhiteMs,
+      serverBlackMs,
+      serverSyncTimestamp,
+      consentRequest,
+      consentPending,
+      requestUndo,
+      acceptUndo,
+      declineUndo,
+      cancelUndoRequest,
+      requestRematch,
+      acceptRematch,
+      declineRematch,
+      cancelRematchRequest,
+      requestDraw,
+      acceptDraw,
+      declineDraw,
+      cancelDrawRequest,
+      requestAbort,
+    }),
+    [
+      socket,
+      playerColor,
+      joinedRoom,
+      inQueue,
+      roomCode,
+      currentRating,
+      timeControl,
+      setTimeControl,
+      variant,
+      setVariant,
+      connected,
+      selfPlayer,
+      opponent,
+      setRoomCode,
+      handleJoinOnlineRoom,
+      handleJoinQueue,
+      handleLeaveQueue,
+      handleClaimTimeout,
+      serverWhiteMs,
+      serverBlackMs,
+      serverSyncTimestamp,
+      consentRequest,
+      consentPending,
+      requestUndo,
+      acceptUndo,
+      declineUndo,
+      cancelUndoRequest,
+      requestRematch,
+      acceptRematch,
+      declineRematch,
+      cancelRematchRequest,
+      requestDraw,
+      acceptDraw,
+      declineDraw,
+      cancelDrawRequest,
+      requestAbort,
+    ],
+  );
 }

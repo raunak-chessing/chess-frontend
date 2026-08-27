@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { useAuthStore } from '@/features/auth/store/authStore';
+import { authClient } from '@/lib/auth-client';
 import toast from 'react-hot-toast';
-import apiClient from '@/lib/api-client';
+import { fetchApi } from '@/lib/api-client';
+import { z } from 'zod';
 
 export interface HexData {
   id: string;
@@ -25,7 +26,8 @@ interface HexDetailsPanelProps {
 }
 
 export function HexDetailsPanel({ hex, onClose, onStructureBuilt }: HexDetailsPanelProps) {
-  const { user } = useAuthStore();
+  const { data: session } = authClient.useSession();
+  const user = session?.user as any;
   const [isBuilding, setIsBuilding] = useState(false);
 
   if (!hex) return null;
@@ -36,11 +38,30 @@ export function HexDetailsPanel({ hex, onClose, onStructureBuilt }: HexDetailsPa
   const handleBuild = async (type: string) => {
     setIsBuilding(true);
     try {
-      await apiClient.post('/api/overworld/build', { hexId: hex.id, type });
+      await fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), '/api/overworld/build', {
+        method: 'POST',
+        body: JSON.stringify({ hexId: hex.id, type })
+      });
       toast.success(`${type} constructed successfully!`);
       onStructureBuilt();
     } catch (e: any) {
-      toast.error(e.response?.data?.message || 'Failed to build structure');
+      toast.error(e.message || 'Failed to build structure');
+    } finally {
+      setIsBuilding(false);
+    }
+  };
+
+  const handleSiege = async () => {
+    setIsBuilding(true);
+    try {
+      await fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), '/api/overworld/siege', {
+        method: 'POST',
+        body: JSON.stringify({ hexId: hex.id })
+      });
+      toast.success(`Launched siege on Hex ${hex.q},${hex.r}!`);
+      onStructureBuilt(); // Re-use this callback to refresh the map
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to launch siege');
     } finally {
       setIsBuilding(false);
     }
@@ -141,6 +162,23 @@ export function HexDetailsPanel({ hex, onClose, onStructureBuilt }: HexDetailsPa
                 <div className="text-xs font-mono text-purple-400">15k A</div>
               </button>
             </div>
+          </div>
+        )}
+
+        {/* Siege Action (Enemy Hexes) */}
+        {!isControlledByMyFaction && hex.controllingFactionId && user?.factionId && (
+          <div className="pt-4 border-t border-slate-800">
+            <button 
+              disabled={isBuilding}
+              onClick={handleSiege}
+              className="w-full p-3 flex justify-between items-center bg-red-900/30 hover:bg-red-900/50 border border-red-900/50 hover:border-red-500 rounded-xl transition-all disabled:opacity-50"
+            >
+              <div className="text-left">
+                <div className="font-bold text-sm text-red-200 uppercase">Launch Siege</div>
+                <div className="text-[10px] text-red-400">Deal 100 damage to fortification</div>
+              </div>
+              <div className="text-xs font-mono text-red-300">⚔️</div>
+            </button>
           </div>
         )}
       </div>

@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { Socket } from "socket.io-client";
+import type { WebSocketClient } from "@/lib/socket-client";
 import { Card } from "../../../../components/ui/Card";
 
+const MAX_MESSAGES = 200;
+
 interface GameChatProps {
-  socket: Socket | null;
+  socket: WebSocketClient | null;
   room: string;
 }
 
@@ -24,7 +26,7 @@ export function GameChat({ socket, room }: GameChatProps) {
     if (!socket) return;
 
     const onMessage = (msg: ChatMessage) => {
-      setMessages((prev) => [...prev, msg]);
+      setMessages((prev) => [...prev, msg].slice(-MAX_MESSAGES));
     };
 
     socket.on("gameMessage", onMessage);
@@ -55,7 +57,7 @@ export function GameChat({ socket, room }: GameChatProps) {
           <span className="text-[11px] opacity-50 m-auto">Say hello!</span>
         ) : (
           messages.map((msg, idx) => (
-            <div key={idx} className="flex flex-col mt-1">
+            <div key={`${msg.timestamp}-${msg.sender}-${idx}`} className="flex flex-col mt-1">
               <span className="font-bold text-[10px] text-[var(--cc-green)] opacity-90">{msg.sender}</span>
               <span className="text-[var(--cc-text-primary)] leading-tight text-xs break-words">{msg.message}</span>
             </div>

@@ -28,9 +28,13 @@ export default function AIReviewPage() {
     async function fetchScript() {
       try {
         const data = await fetchApi(CoachResponseSchema, `/api/analysis/${gameId}/coach`);
-        setScript(data.script || []);
-        if (data.script && data.script.length > 0) {
-          setCurrentFen(data.script[0].fen);
+        const parsedScript: CoachScriptLine[] = (data.script || []).map(line => ({
+          ...line,
+          audioUrl: line.audioUrl || null
+        }));
+        setScript(parsedScript);
+        if (parsedScript.length > 0) {
+          setCurrentFen(parsedScript[0].fen);
         }
       } catch (err) {
         console.error('Failed to fetch coach script', err);
@@ -77,9 +81,57 @@ export default function AIReviewPage() {
             script={script} 
             onLineChange={handleLineChange} 
           />
+
+          <div className="mt-8 bg-neutral-900 border border-neutral-800 rounded-xl p-4 shadow-xl">
+            <h2 className="text-xl font-bold text-amber-500 mb-2 border-b border-neutral-800 pb-2">Master Games Explorer</h2>
+            <OpeningExplorerWidget fen={currentFen} />
+          </div>
         </div>
 
       </div>
+    </div>
+  );
+}
+
+// Widget to fetch and display top master games for the current position
+function OpeningExplorerWidget({ fen }: { fen: string }) {
+  const [games, setGames] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    import('@/lib/lichessApi').then(({ lichessApi }) => {
+      setLoading(true);
+      lichessApi.getTopGames(fen, 3)
+        .then(res => setGames(res || []))
+        .catch(() => setGames([]))
+        .finally(() => setLoading(false));
+    });
+  }, [fen]);
+
+  if (loading) return <div className="text-neutral-500 text-sm animate-pulse">Consulting opening databases...</div>;
+  if (!games.length) return <div className="text-neutral-500 text-sm">No master games found for this exact position.</div>;
+
+  return (
+    <div className="space-y-2 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+      {games.map((g, idx) => (
+        <a 
+          key={idx} 
+          href={`https://lichess.org/${g.id}`} 
+          target="_blank" 
+          rel="noreferrer"
+          className="block bg-neutral-950 p-3 rounded-lg hover:bg-neutral-800 transition-colors border border-neutral-800"
+        >
+          <div className="flex justify-between items-center text-sm">
+            <span className="text-white font-bold">{g.white.name} <span className="text-neutral-500 font-normal">({g.white.rating})</span></span>
+            <span className="text-neutral-400 text-xs">vs</span>
+            <span className="text-white font-bold">{g.black.name} <span className="text-neutral-500 font-normal">({g.black.rating})</span></span>
+          </div>
+          <div className="flex justify-between items-center mt-1 text-xs">
+            <span className="text-amber-500">{g.year}</span>
+            <span className="text-green-400">{g.winner === 'white' ? '1-0' : g.winner === 'black' ? '0-1' : '1/2-1/2'}</span>
+          </div>
+        </a>
+      ))}
     </div>
   );
 }

@@ -61,30 +61,28 @@ export function GameSetupLobby({
           </button>
         </div>
 
-        {gameMode !== "online" && (
-          <div className="flex flex-col gap-2">
-            <SectionHeader>Select Chess Variant</SectionHeader>
-            <div className="grid grid-cols-2 gap-3">
-              {CHESS_VARIANTS.map((v) => {
-                const isActive = selectedVariant === v.id;
-                return (
-                  <SelectableCard
-                    key={v.id}
-                    isActive={isActive}
-                    onClick={() => setSelectedVariant(v.id as GameVariant)}
-                    className="p-3 rounded-xl flex flex-col items-start gap-1 text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{v.icon}</span>
-                      <span className="text-sm font-bold font-sans">{v.name}</span>
-                    </div>
-                    <span className="text-[11px] font-medium leading-tight opacity-80">{v.desc}</span>
-                  </SelectableCard>
-                );
-              })}
-            </div>
+        <div className="flex flex-col gap-2">
+          <SectionHeader>Select Chess Variant</SectionHeader>
+          <div className="grid grid-cols-2 gap-3">
+            {CHESS_VARIANTS.map((v) => {
+              const isActive = selectedVariant === v.id;
+              return (
+                <SelectableCard
+                  key={v.id}
+                  isActive={isActive}
+                  onClick={() => setSelectedVariant(v.id as GameVariant)}
+                  className="p-3 rounded-xl flex flex-col items-start gap-1 text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    <span className="text-xl">{v.icon}</span>
+                    <span className="text-sm font-bold font-sans">{v.name}</span>
+                  </div>
+                  <span className="text-[11px] font-medium leading-tight opacity-80">{v.desc}</span>
+                </SelectableCard>
+              );
+            })}
           </div>
-        )}
+        </div>
 
         {gameMode !== "online" && (
           <div className="flex flex-col gap-2 border-t pt-4 border-cc-border-light">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Card } from "@/components/ui/Card";
@@ -21,7 +21,7 @@ export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
   const [isJoined, setIsJoined] = useState(false);
   const [playingMatch, setPlayingMatch] = useState(false);
 
-  const fetchTournament = async () => {
+  const fetchTournament = useCallback(async () => {
     try {
       const data = await tournamentsApi.getTournamentDetails(tournamentId);
       setTournament(data);
@@ -33,13 +33,13 @@ export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
       console.error(e);
       setLoading(false);
     }
-  };
+  }, [tournamentId, userId]);
 
   useEffect(() => {
     fetchTournament();
     const int = setInterval(fetchTournament, 5000); // Polling for leaderboard updates for now
     return () => clearInterval(int);
-  }, [tournamentId, userId]);
+  }, [fetchTournament]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -47,7 +47,7 @@ export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
       socket.connect();
     }
     
-    const handleRoomJoined = (data: { color: 'w' | 'b', room: string }) => {
+    const handleRoomJoined = () => {
       setPlayingMatch(true); // Switches view to GameView
     };
 

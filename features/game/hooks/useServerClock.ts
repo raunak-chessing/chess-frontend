@@ -31,7 +31,7 @@ export function useServerClock(
 ): ServerClockState {
   const [whiteDisplay, setWhiteDisplay] = useState(serverWhiteMs);
   const [blackDisplay, setBlackDisplay] = useState(serverBlackMs);
-  const frameRef = useRef<number>();
+  const frameRef = useRef<number | null>(null);
   const timeoutCalledRef = useRef(false);
 
   useEffect(() => {

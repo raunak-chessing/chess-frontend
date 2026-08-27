@@ -1,7 +1,7 @@
 import type React from "react";
 
 export type GameVariant = "standard" | "chess960" | "three-check" | "king-of-the-hill";
-export type GameMode = "pvp" | "computer-black" | "computer-white" | "online" | "puzzle-rush";
+export type GameMode = "pvp" | "computer-black" | "computer-white" | "online" | "puzzle-rush" | "vote";
 export type ViewState = "home" | "play";
 export type PlayerColor = "w" | "b";
 

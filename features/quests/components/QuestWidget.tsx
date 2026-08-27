@@ -77,7 +77,7 @@ export function QuestWidget() {
             ) : (
               quests.map(quest => {
                 const labelData = QUEST_LABELS[quest.questId] || { title: quest.questId, icon: Target };
-                const Icon = labelData.icon;
+                const Icon = labelData.icon as any;
                 const percentage = Math.min(100, Math.round((quest.progress / quest.target) * 100));
 
                 return (

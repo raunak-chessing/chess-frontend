@@ -2,7 +2,7 @@ import React from "react";
 import { X, Check, Loader2 } from "lucide-react";
 
 interface ConsentDialogProps {
-  type: "undo" | "rematch" | null;
+  type: "undo" | "rematch" | "draw" | null;
   isPending: boolean;
   onAccept: () => void;
   onDecline: () => void;
@@ -12,9 +12,9 @@ interface ConsentDialogProps {
 export function ConsentDialog({ type, isPending, onAccept, onDecline, onCancel }: ConsentDialogProps) {
   if (!type) return null;
 
-  const title = type === "undo" ? "Takeback Request" : "Rematch Request";
-  const descPending = `Waiting for opponent to accept your ${type} request...`;
-  const descRequest = `Your opponent requested a ${type}.`;
+  const title = type === "undo" ? "Takeback Request" : type === "draw" ? "Draw Offer" : "Rematch Request";
+  const descPending = `Waiting for opponent to accept your ${type === "draw" ? "draw offer" : type + " request"}...`;
+  const descRequest = `Your opponent ${type === "draw" ? "offered a draw" : "requested a " + type}.`;
 
   return (
     <div className="absolute top-4 right-4 z-50 flex flex-col items-center bg-cc-bg-card border border-cc-border p-4 rounded-xl shadow-2xl animate-in slide-in-from-top fade-in duration-300 w-72">

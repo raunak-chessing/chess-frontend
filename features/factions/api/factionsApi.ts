@@ -20,8 +20,30 @@ export const getFactions = async (): Promise<Faction[]> => {
 };
 
 export const joinFaction = async (factionId: string): Promise<void> => {
-  return fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), '/api/factions/join', {
+  await fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), '/api/factions/join', {
     method: 'POST',
     body: JSON.stringify({ factionId }),
   });
+};
+
+export const DivisionUserSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  factionContribution: z.number(),
+  rating: z.number(),
+});
+export type DivisionUser = z.infer<typeof DivisionUserSchema>;
+
+export const DivisionSchema = z.object({
+  id: z.string(),
+  tier: z.string(),
+  seasonEnd: z.string(),
+  users: z.array(DivisionUserSchema),
+});
+export type Division = z.infer<typeof DivisionSchema>;
+
+export const DivisionListSchema = z.array(DivisionSchema);
+
+export const getDivisions = async (): Promise<Division[]> => {
+  return fetchApi(DivisionListSchema, '/api/factions/divisions');
 };

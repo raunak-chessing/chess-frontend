@@ -140,14 +140,14 @@ export interface GameActions {
     target: string,
     gameMode: GameMode,
     joinedRoom: string,
-    playerColor: "w" | "b" | null,
+    playerColor: "w" | "b" | "s" | null,
     socket: { emit: (event: string, data: Record<string, string>) => void } | null,
   ) => boolean;
   handleSquareClick: (
     square: string,
     gameMode: GameMode,
     joinedRoom: string,
-    playerColor: "w" | "b" | null,
+    playerColor: "w" | "b" | "s" | null,
     socket: { emit: (event: string, data: Record<string, string>) => void } | null,
     promotionPiece?: string
   ) => void;
@@ -162,6 +162,7 @@ export interface GameActions {
     joinedRoom: string,
     socket: { emit: (event: string, data: Record<string, unknown>) => void } | null,
   ) => void;
+  syncGameState: (pgn: string, options?: { announceMove?: boolean }) => void;
   handleAutoFlipToggle: (checked: boolean) => void;
   setFlipped: (flipped: boolean) => void;
   setAutoFlip: (autoFlip: boolean) => void;
@@ -176,8 +177,11 @@ export interface GameActions {
   setFen: (fen: string) => void;
   resolvePromotion: (piece: "q" | "r" | "b" | "n", gameMode: GameMode, joinedRoom: string, socket: any) => void;
   cancelPromotion: () => void;
+  setPendingPromotion: (promotion: { from: string; to: string } | null) => void;
+  setVariantWinner: (winner: "w" | "b" | null) => void;
 }
 
+export interface UseGameStateReturn extends GameState, GameActions {}
 export function useGameState(): UseGameStateReturn {
   const store = useGameStore();
   const {
@@ -278,11 +282,36 @@ export function useGameState(): UseGameStateReturn {
   );
 
   const resetGameWithVariant = useCallback(
-    (v: GameVariant, flipBoard = false) => {
+    (v: GameVariant, flipBoard?: boolean) => {
       resetGameCore(v, flipBoard);
     },
     [resetGameCore],
   );
+
+  const syncGameState = useCallback((pgn: string, options?: { announceMove?: boolean }) => {
+    try {
+      const prevMoveCount = game.history().length;
+      game.loadPgn(pgn);
+      setFen(game.fen());
+      setSelectedSquare("");
+      setViewMoveIndex(null);
+      setPendingPromotion(null);
+      setPremoveQueue([]);
+
+      const history = game.history({ verbose: true });
+      if (history.length > 0) {
+        const last = history[history.length - 1];
+        setLastMove({ from: last.from, to: last.to });
+        if (options?.announceMove && history.length > prevMoveCount) {
+          playMoveSound(last, game.inCheck());
+        }
+      } else {
+        setLastMove(null);
+      }
+    } catch (e) {
+      console.error("Failed to sync game state from PGN", e);
+    }
+  }, [game]);
 
   const applyMove = useCallback(
     (fromOrSan: string, to?: string, promotionPiece?: string): boolean => {
@@ -405,7 +434,7 @@ export function useGameState(): UseGameStateReturn {
     (
       gameMode: GameMode,
       joinedRoom: string,
-      playerColor: "w" | "b" | null,
+      playerColor: "w" | "b" | "s" | null,
     ): boolean => {
       if (viewMoveIndex !== null) return false;
       if (game.isGameOver()) return false;
@@ -446,7 +475,7 @@ export function useGameState(): UseGameStateReturn {
           playMoveSound(move, game.inCheck());
 
           if (gameMode === "online" && socket && joinedRoom) {
-            socket.emit("makeMove", { room: joinedRoom, from, to, promotion: promotionPiece, fen: nextFen });
+            socket.emit("make_move", { room: joinedRoom, move: `${from}${to}${promotionPiece || ""}` });
           } else {
             syncFlipState(game.turn(), autoFlip);
           }
@@ -470,7 +499,7 @@ export function useGameState(): UseGameStateReturn {
       targetSquare: string,
       gameMode: GameMode,
       joinedRoom: string,
-      playerColor: "w" | "b" | null,
+      playerColor: "w" | "b" | "s" | null,
       socket: { emit: (event: string, data: Record<string, string>) => void } | null,
       promotionPiece?: string
     ): boolean => {
@@ -480,7 +509,7 @@ export function useGameState(): UseGameStateReturn {
         // Enqueue premove if playing online
         if (gameMode === "online" && joinedRoom && !game.isGameOver()) {
           // Just a pseudo-check to see if the piece belongs to the player
-          const piece = game.get(sourceSquare as Square);
+          const piece = game.get(sourceSquare as any);
           if (piece && piece.color === playerColor) {
             setPremoveQueue(prev => [...prev, { from: sourceSquare, to: targetSquare }]);
           }
@@ -499,7 +528,7 @@ export function useGameState(): UseGameStateReturn {
       square: string,
       gameMode: GameMode,
       joinedRoom: string,
-      playerColor: "w" | "b" | null,
+      playerColor: "w" | "b" | "s" | null,
       socket: { emit: (event: string, data: Record<string, string>) => void } | null,
       promotionPiece?: string
     ) => {
@@ -511,7 +540,7 @@ export function useGameState(): UseGameStateReturn {
             setPremoveQueue(prev => [...prev, { from: selectedSquare, to: square }]);
             setSelectedSquare("");
           } else {
-            const piece = game.get(square as Square);
+            const piece = game.get(square as any);
             if (piece && piece.color === playerColor) {
               setSelectedSquare(square);
             }
@@ -530,12 +559,12 @@ export function useGameState(): UseGameStateReturn {
         const moved = executeMove(selectedSquare, square, gameMode, joinedRoom, socket, promotionPiece);
         if (moved) return;
         // They clicked another piece of theirs, select it instead
-        const piece = game.get(square as Square);
+        const piece = game.get(square as any);
         if (piece && piece.color === game.turn()) {
           setSelectedSquare(square);
         }
       } else {
-        const piece = game.get(square as Square);
+        const piece = game.get(square as any);
         const turn = game.turn();
         if (piece && piece.color === turn) {
           setSelectedSquare(square);
@@ -566,12 +595,12 @@ export function useGameState(): UseGameStateReturn {
       styles[selectedSquare] = { background: BOARD_THEME.selectedColor };
 
       const moves = game.moves({
-        square: selectedSquare as Square,
+        square: selectedSquare as any,
         verbose: true,
       });
 
       moves.forEach((m) => {
-        const isCapture = game.get(m.to as Square);
+        const isCapture = game.get(m.to as any);
         styles[m.to] = {
           background: isCapture
             ? BOARD_THEME.captureHintColor
@@ -698,41 +727,85 @@ export function useGameState(): UseGameStateReturn {
     [captured],
   );
 
-  return {
-    game,
-    fen: boardFen,
-    selectedSquare,
-    lastMove,
-    pendingPromotion,
-    flipped,
-    autoFlip,
-    capturedWhite,
-    capturedBlack,
-    turn: game.turn(),
-    viewMoveIndex,
-    variant,
-    whiteChecks,
-    blackChecks,
-    variantWinner,
-    handlePieceDrop,
-    handleSquareClick,
-    getSquareStyles,
-    handleUndo,
-    handleReset,
-    handleAutoFlipToggle,
-    setFlipped,
-    setAutoFlip,
-    resetGame,
-    resetGameWithVariant,
-    applyMove,
-    applyUndo,
-    performUndo,
-    setViewMoveIndex,
-    setVariant,
-    premoveQueue,
-    clearPremoves,
-    setFen,
-    resolvePromotion,
-    cancelPromotion,
-  };
+  return useMemo(
+    () => ({
+      game,
+      fen: boardFen,
+      selectedSquare,
+      lastMove,
+      pendingPromotion,
+      flipped,
+      autoFlip,
+      capturedWhite,
+      capturedBlack,
+      turn: game.turn(),
+      viewMoveIndex,
+      variant,
+      whiteChecks,
+      blackChecks,
+      variantWinner,
+      handlePieceDrop,
+      handleSquareClick,
+      getSquareStyles,
+      handleUndo,
+      handleReset,
+      handleAutoFlipToggle,
+      setFlipped,
+      setAutoFlip,
+      resetGame,
+      resetGameWithVariant,
+      syncGameState,
+      applyMove,
+      applyUndo,
+      performUndo,
+      setViewMoveIndex,
+      setVariant,
+      premoveQueue,
+      clearPremoves,
+      setFen,
+      resolvePromotion,
+      cancelPromotion,
+      setPendingPromotion,
+      setVariantWinner,
+    }),
+    [
+      game,
+      boardFen,
+      selectedSquare,
+      lastMove,
+      pendingPromotion,
+      flipped,
+      autoFlip,
+      capturedWhite,
+      capturedBlack,
+      viewMoveIndex,
+      variant,
+      whiteChecks,
+      blackChecks,
+      variantWinner,
+      handlePieceDrop,
+      handleSquareClick,
+      getSquareStyles,
+      handleUndo,
+      handleReset,
+      handleAutoFlipToggle,
+      setFlipped,
+      setAutoFlip,
+      resetGame,
+      resetGameWithVariant,
+      syncGameState,
+      applyMove,
+      applyUndo,
+      performUndo,
+      setViewMoveIndex,
+      setVariant,
+      premoveQueue,
+      clearPremoves,
+      setFen,
+      resolvePromotion,
+      cancelPromotion,
+      setPendingPromotion,
+      setVariantWinner,
+    ],
+  );
 }

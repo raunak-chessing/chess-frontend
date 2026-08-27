@@ -1,17 +1,21 @@
 import React from "react";
 import type { GameMode } from "../../types/game.types";
 import { GameStatusBar } from "../GameStatusBar";
+import type { UseGameSocketReturn } from "../../hooks/useGameSocket";
+import type { UseGameStateReturn } from "../../hooks/useGameState";
+import type { ServerClockState } from "../../hooks/useServerClock";
+import type { COMPUTER_OPPONENTS } from "../../constants/setupOptions";
 
 interface GameHeaderProps {
   gameMode: GameMode;
-  socketState: any;
-  gameState: any;
+  socketState: UseGameSocketReturn;
+  gameState: UseGameStateReturn;
   selfChecks: number;
   oppChecks: number;
-  activeBot?: any;
+  activeBot?: (typeof COMPUTER_OPPONENTS)[number];
   playerLeftTimeStr: string;
   playerRightTimeStr: string;
-  serverClock: any;
+  serverClock: ServerClockState;
   openingName: string;
 }
 

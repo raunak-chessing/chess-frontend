@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useMemo, useEffect, useCallback, useRef } from "react";
-import { useSearchParams } from "next/navigation";
+import { useState, useMemo, useEffect, useCallback, useRef, Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import type { GameMode, GameVariant } from "../../types/game.types";
 import { useGameState } from "../../hooks/useGameState";
 import { useGameSocket } from "../../hooks/useGameSocket";
@@ -17,7 +17,6 @@ import { PuzzleRush } from "../PuzzleRush/PuzzleRush";
 import { OnlineMatchmaker } from "../OnlineMatchmaker";
 import { ConsentDialog } from "../ConsentDialog";
 import { GameChat } from "../GameChat/GameChat";
-import { lichessApi } from "../../../../lib/lichessApi";
 import { TIME_CONTROLS, CHESS_VARIANTS, COMPUTER_OPPONENTS } from "../../constants/setupOptions";
 import { Card } from "../../../../components/ui/Card";
 import { SelectableCard } from "../../../../components/ui/SelectableCard";
@@ -29,14 +28,20 @@ import { formatTime } from "../../../../lib/utils";
 import { useVoiceControl } from "../../hooks/useVoiceControl";
 import { useVoiceAnnouncer } from "../../hooks/useVoiceAnnouncer";
 import { useServerClock } from "../../hooks/useServerClock";
+import { useOpeningName } from "../../hooks/useOpeningName";
+import { usePremoveExecution } from "../../hooks/usePremoveExecution";
+import { deriveGameResult, getOverlayConfig } from "../../utils/deriveGameResult";
 import { PromotionPicker } from "../PromotionPicker";
+import { StreamerHeatmap } from "../../../social/components/StreamerHeatmap";
+import { WagerOverlay } from "../../../social/components/WagerOverlay";
+import { useEquippedBoardSkin } from "../../../inventory/hooks/useEquippedBoardSkin";
 
 interface GameViewProps {
   initialMode: GameMode;
   onReturnHome: () => void;
 }
 
-export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
+function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
   const [gameMode, setGameMode] = useState<GameMode>(initialMode);
   const [localResult, setLocalResult] = useState<"won" | "lost" | "draw" | "opponent-disconnected" | "opponent-resigned" | null>(null);
   const [overlayDismissed, setOverlayDismissed] = useState(false);
@@ -45,6 +50,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const [isBlindfold, setIsBlindfold] = useState(false);
 
   const searchParams = useSearchParams();
+  const router = useRouter();
   const autoJoinAttempted = useRef(false);
 
   const [whiteTime, setWhiteTime] = useState(600);
@@ -58,9 +64,8 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   const [localTimeControl, setLocalTimeControl] = useState("10|0");
   const [botSide, setBotSide] = useState<"w" | "b" | "random">("random");
 
-  const [openingName, setOpeningName] = useState<string | null>(null);
-
   const gameState = useGameState();
+  const boardSkin = useEquippedBoardSkin();
 
   const activeBot = useMemo(() => COMPUTER_OPPONENTS.find((b) => b.id === botDifficulty), [botDifficulty]);
 
@@ -77,8 +82,9 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
 
   const socketHandlers = useMemo(
     () => ({
-      applyMove: gameState.applyMove,
       applyUndo: gameState.applyUndo,
+      syncGameState: gameState.syncGameState,
+      setVariant: gameState.setVariant,
       resetGame: () => {
         setLocalResult(null);
         setOverlayDismissed(false);
@@ -95,11 +101,31 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
         setLocalResult("opponent-resigned");
         setOverlayDismissed(false);
       },
+      onTimeout: (winner: "w" | "b") => {
+        setLocalResult(winner === "w" ? "lost" : "won"); // Rough fallback logic, will be overridden by localResult evaluation logic
+        gameState.setVariantWinner(winner);
+      },
+      onRematchAccepted: (newGameId?: string) => {
+        if (newGameId) {
+          router.push(`/play/online?gameId=${newGameId}`);
+          window.location.href = `/play/online?gameId=${newGameId}`; // Force reload for clean state
+        } else {
+          gameState.resetGame();
+        }
+      }
     }),
-    [gameState, handleResetTimers],
+    [gameState, handleResetTimers, router],
   );
 
   const socketState = useGameSocket(socketHandlers);
+
+  const handleSelectedVariantChange = useCallback(
+    (v: GameVariant) => {
+      setSelectedVariant(v);
+      socketState.setVariant(v);
+    },
+    [socketState],
+  );
 
   // Auto-join from challenge
   useEffect(() => {
@@ -134,20 +160,18 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     let matchedMove = null;
 
     if (typeof move === "string") {
-      matchedMove = legalMoves.find(m => m.san.toLowerCase() === move.toLowerCase() || m.san.replace(/[+#]/,'').toLowerCase() === move.toLowerCase());
+      matchedMove = legalMoves.find((m: any) => m.san.toLowerCase() === move.toLowerCase() || m.lan === move);
     } else {
-      matchedMove = legalMoves.find(m => m.from === move.from && m.to === move.to);
+      matchedMove = legalMoves.find((m: any) => m.from === move.from && m.to === move.to);
     }
 
     if (!matchedMove) return false;
 
     const success = gameState.applyMove(matchedMove.san);
     if (success && gameMode === "online" && socketState.joinedRoom) {
-      socketState.socket.emit("makeMove", {
+      socketState.socket.emit("make_move", {
         room: socketState.joinedRoom,
-        from: matchedMove.from,
-        to: matchedMove.to,
-        promotion: matchedMove.promotion
+        move: `${matchedMove.from}${matchedMove.to}${matchedMove.promotion || ""}`,
       });
     }
     return success;
@@ -173,36 +197,13 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     }
   }, [socketState.joinedRoom, isSetupComplete]);
 
-  let derivedResult: "won" | "lost" | "draw" | "opponent-disconnected" | "opponent-resigned" | null = localResult;
-
-  if (!derivedResult && gameState.variantWinner !== null) {
-    if (gameMode === "online") {
-      derivedResult = socketState.playerColor === gameState.variantWinner ? "won" : "lost";
-    } else if (gameMode === "computer-black") {
-      derivedResult = gameState.variantWinner === "w" ? "won" : "lost";
-    } else if (gameMode === "computer-white") {
-      derivedResult = gameState.variantWinner === "b" ? "won" : "lost";
-    } else {
-      derivedResult = gameState.variantWinner === "w" ? "won" : "lost";
-    }
-  }
-
-  if (!derivedResult && gameState.game.isGameOver()) {
-    if (gameState.game.isCheckmate()) {
-      const turn = gameState.game.turn();
-      if (gameMode === "online") {
-        derivedResult = socketState.playerColor === turn ? "lost" : "won";
-      } else if (gameMode === "computer-black") {
-        derivedResult = turn === "b" ? "won" : "lost";
-      } else if (gameMode === "computer-white") {
-        derivedResult = turn === "w" ? "won" : "lost";
-      } else {
-        derivedResult = turn === "w" ? "lost" : "won";
-      }
-    } else if (gameState.game.isDraw()) {
-      derivedResult = "draw";
-    }
-  }
+  const derivedResult = deriveGameResult({
+    localResult,
+    variantWinner: gameState.variantWinner,
+    game: gameState.game,
+    gameMode,
+    playerColor: socketState.playerColor,
+  });
 
   const showOverlay = derivedResult !== null && !overlayDismissed;
 
@@ -248,67 +249,22 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     };
   }, [gameState.fen, gameState.game, gameMode, socketState.playerColor, localResult]);
 
+  const handleServerTimeout = useCallback(() => {
+    socketState.handleClaimTimeout();
+  }, [socketState.handleClaimTimeout]);
+
   const serverClock = useServerClock(
     gameState.turn,
     socketState.serverWhiteMs,
     socketState.serverBlackMs,
     socketState.serverSyncTimestamp,
     gameMode === "online" && !gameState.game.isGameOver() && localResult === null,
-    (color) => {
-      socketState.handleClaimTimeout();
-    }
+    handleServerTimeout
   );
 
-  useEffect(() => {
-    // Premove execution logic
-    const isTurn =
-      (gameMode === "online" && socketState.playerColor === gameState.turn) ||
-      (gameMode === "computer-black" && gameState.turn === "w") ||
-      (gameMode === "computer-white" && gameState.turn === "b") ||
-      gameMode === "pvp";
+  usePremoveExecution(gameState, gameMode, socketState);
 
-    if (isTurn && gameState.premoveQueue.length > 0 && !gameState.game.isGameOver()) {
-      const pm = gameState.premoveQueue[0];
-      const success = gameState.handlePieceDrop(
-        pm.from,
-        pm.to,
-        gameMode,
-        socketState.joinedRoom,
-        socketState.playerColor,
-        socketState.socket,
-      );
-      if (!success) {
-        gameState.clearPremoves();
-      }
-    }
-  }, [
-    gameState.turn,
-    gameState.premoveQueue,
-    gameMode,
-    socketState.playerColor,
-    socketState.joinedRoom,
-    socketState.socket,
-    gameState,
-  ]);
-
-  // Fetch opening name for the first 15 moves
-  useEffect(() => {
-    if (gameState.game.history().length > 15) return;
-    
-    const fetchOpening = async () => {
-      try {
-        const openingName = await lichessApi.getOpeningName(gameState.fen);
-        if (openingName) {
-          setOpeningName(openingName);
-        }
-      } catch (e) {
-        // silently ignore
-      }
-    };
-
-    const timer = setTimeout(fetchOpening, 500);
-    return () => clearTimeout(timer);
-  }, [gameState.fen, gameState.game]);
+  const openingName = useOpeningName(gameState.fen, gameState.game.history().length);
 
   useChessEngine({
     game: gameState.game,
@@ -341,8 +297,18 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     ],
   );
 
+  const streamerId = searchParams.get("streamerId");
+
   const handleSquareClick = useCallback(
     (square: string) => {
+      if (streamerId) {
+        // Emit spectator vote instead of making a move
+        import("../../../social/components/StreamerHeatmap").then(mod => {
+          mod.emitStreamerVote(streamerId, square);
+        });
+        return;
+      }
+
       gameState.handleSquareClick(
         square,
         gameMode,
@@ -380,7 +346,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
   }, [gameState, gameMode, socketState, handleResetTimers]);
 
   const handleFlipBoard = useCallback(() => {
-    gameState.setFlipped((prev) => !prev);
+    gameState.setFlipped(!gameState.flipped);
   }, [gameState]);
 
   const handleResign = useCallback(() => {
@@ -391,81 +357,14 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
     setOverlayDismissed(false);
   }, [gameMode, socketState.joinedRoom, socketState.socket]);
 
-  const getOverlayConfig = () => {
-    if (!showOverlay) return null;
-    let title = "🎉 Victory!";
-    let description = "You won the match!";
-
-    if (gameState.variantWinner !== null) {
-      const vName = gameState.variant === "three-check" ? "Three-Check" : "King of the Hill";
-      const winnerColorName = gameState.variantWinner === "w" ? "White" : "Black";
-      if (gameMode === "pvp") {
-        title = `🎉 ${winnerColorName} Wins!`;
-        description = `${vName} objective completed!`;
-      } else {
-        const didIWin = gameMode === "online"
-          ? socketState.playerColor === gameState.variantWinner
-          : (gameMode === "computer-black" ? gameState.variantWinner === "w" : gameState.variantWinner === "b");
-        if (didIWin) {
-          title = "🎉 Victory!";
-          description = `You completed the ${vName} goal!`;
-        } else {
-          title = "🏳️ Defeat";
-          description = `Your opponent completed the ${vName} goal.`;
-        }
-      }
-    } else {
-      if (derivedResult === "lost") {
-        title = "🏳️ Defeat";
-        description = "You lost this match.";
-      } else if (derivedResult === "draw") {
-        title = "🤝 Draw";
-        description = "The game ended in a draw.";
-      } else if (derivedResult === "opponent-disconnected") {
-        title = "🔌 Opponent Disconnected";
-        description = "Your opponent left the game.";
-      } else if (derivedResult === "opponent-resigned") {
-        title = "🎉 Victory by Resignation!";
-        description = "Your opponent resigned.";
-      }
-    }
-
-    switch (derivedResult) {
-      case "won":
-      case "opponent-resigned":
-        return {
-          title,
-          description,
-          bgClass: "bg-cc-bg-sidebar/95 border-cc-border-hover/20 text-cc-text-primary font-serif",
-          buttonClass: "bg-emerald-700 hover:bg-emerald-600 text-white",
-        };
-      case "lost":
-        return {
-          title,
-          description,
-          bgClass: "bg-cc-bg-sidebar/95 border-cc-border-hover/20 text-cc-text-primary font-serif",
-          buttonClass: "bg-red-900 hover:bg-red-800 text-red-100",
-        };
-      case "draw":
-        return {
-          title,
-          description,
-          bgClass: "bg-[var(--cc-bg-card)] border-[var(--cc-border-light)] text-[var(--cc-text-primary)] font-sans",
-          buttonClass: "bg-[var(--cc-bg-input)] hover:bg-[var(--cc-bg-hover)] text-white",
-        };
-      case "opponent-disconnected":
-        return {
-          title,
-          description,
-          bgClass: "bg-[var(--cc-bg-card)] border-[var(--cc-border-light)] text-[var(--cc-text-primary)] font-sans",
-          buttonClass: "bg-amber-700 hover:bg-amber-600 text-white",
-        };
-      default:
-        return null;
-    }
-  };
-
-  const overlayConfig = getOverlayConfig();
+  const overlayConfig = getOverlayConfig({
+    showOverlay,
+    derivedResult,
+    variantWinner: gameState.variantWinner,
+    variant: gameState.variant,
+    gameMode,
+    playerColor: socketState.playerColor,
+  });
 
   const selfColor = gameMode === "online" ? (socketState.playerColor || "w") : "w";
   const selfChecks = selfColor === "w" ? gameState.whiteChecks : gameState.blackChecks;
@@ -501,7 +400,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
         setGameMode={setGameMode}
         onReturnHome={onReturnHome}
         selectedVariant={selectedVariant}
-        setSelectedVariant={setSelectedVariant}
+        setSelectedVariant={handleSelectedVariantChange}
         localTimeControl={localTimeControl}
         setLocalTimeControl={setLocalTimeControl}
         botDifficulty={botDifficulty}
@@ -548,7 +447,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
           playerLeftTimeStr={playerLeftTimeStr}
           playerRightTimeStr={playerRightTimeStr}
           serverClock={serverClock}
-          openingName={openingName}
+          openingName={openingName || ""}
         />
 
         <div className="flex flex-col lg:flex-row items-center gap-4 justify-center w-full">
@@ -576,14 +475,17 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
                   onAccept={() => {
                     if (socketState.consentRequest === "undo") socketState.acceptUndo();
                     if (socketState.consentRequest === "rematch") socketState.acceptRematch();
+                    if (socketState.consentRequest === "draw") socketState.acceptDraw();
                   }}
                   onDecline={() => {
                     if (socketState.consentRequest === "undo") socketState.declineUndo();
                     if (socketState.consentRequest === "rematch") socketState.declineRematch();
+                    if (socketState.consentRequest === "draw") socketState.declineDraw();
                   }}
                   onCancel={() => {
                     if (socketState.consentPending === "undo") socketState.cancelUndoRequest();
                     if (socketState.consentPending === "rematch") socketState.cancelRematchRequest();
+                    if (socketState.consentPending === "draw") socketState.cancelDrawRequest();
                   }}
                 />
               )}
@@ -596,6 +498,7 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
                 squareStyles={gameState.getSquareStyles()}
                 onSquareClick={handleSquareClick}
                 onPremoveClear={gameState.clearPremoves}
+                skin={boardSkin}
                 isDraggablePiece={({ piece }) => {
                   if (gameState.game.isGameOver() || localResult !== null) return false;
                   // If it's a game mode against bot or local PvP, use normal rules
@@ -625,15 +528,33 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
                   onDismiss={() => setOverlayDismissed(true)} 
                 />
               )}
+              
+              {streamerId && (
+                <div className="absolute inset-0 z-20 pointer-events-none">
+                  {/* Need to conditionally load or just require it at top */}
+                  <StreamerHeatmap streamerId={streamerId} />
+                </div>
+              )}
             </div>
           </div>
 
-          <div className="order-4 lg:order-3 flex w-full lg:w-auto justify-center">
+          <div className="order-4 lg:order-3 flex flex-col w-full lg:w-auto justify-center gap-4">
             <CapturedPieces
               pieces={gameState.capturedBlack}
               colorClass="text-zinc-950"
               boardHeightClass="captured-tray-responsive"
             />
+            {gameMode === "online" && socketState.playerColor === "s" && socketState.joinedRoom && socketState.selfPlayer && socketState.opponent && (
+              <div className="mt-4 w-full">
+                <WagerOverlay
+                  gameId={socketState.joinedRoom}
+                  whitePlayerId={socketState.selfPlayer?.name || ""}
+                  blackPlayerId={socketState.opponent?.name || ""}
+                  whiteName={socketState.selfPlayer?.name || "White"}
+                  blackName={socketState.opponent?.name || "Black"}
+                />
+              </div>
+            )}
           </div>
 
           <div className="order-2 lg:order-4 flex w-full lg:w-auto justify-center move-history-responsive">
@@ -676,6 +597,8 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
               onReset={handleReset}
               onReturnHome={onReturnHome}
               onResign={handleResign}
+              onOfferDraw={socketState.requestDraw}
+              onAbort={socketState.requestAbort}
               onReviewGame={() => setShowReview(!showReview)}
             />
             
@@ -695,5 +618,13 @@ export default function GameView({ initialMode, onReturnHome }: GameViewProps) {
 
       </div>
     </main>
+  );
+}
+
+export default function GameView(props: GameViewProps) {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-neutral-400">Loading game interface...</div>}>
+      <GameViewInner {...props} />
+    </Suspense>
   );
 }

@@ -1,4 +1,5 @@
 import type { SquareStyles } from "../../types/game.types";
+import type { BoardSkin } from "../../constants/boardTheme";
 
 export interface BoardProps {
   position: string;
@@ -10,4 +11,5 @@ export interface BoardProps {
   premove?: [string, string] | null;
   onPremoveClear?: () => void;
   isDraggablePiece?: (args: { piece: string; sourceSquare: string }) => boolean;
+  skin?: BoardSkin;
 }

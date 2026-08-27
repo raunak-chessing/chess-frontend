@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 const Chessboard = dynamic(() => import("react-chessboard").then(mod => mod.Chessboard), { ssr: false });
 import type { ChessboardOptions } from "react-chessboard";
 import { Chess, Square } from "chess.js";
-import { BOARD_THEME } from "../../constants/boardTheme";
+import { DEFAULT_BOARD_SKIN, type BoardSkin } from "../../constants/boardTheme";
 
 interface PuzzleBattleBoardProps {
   fen: string;
@@ -17,6 +17,7 @@ interface PuzzleBattleBoardProps {
   label: string;
   elo: number;
   avatar: string;
+  skin?: BoardSkin;
 }
 
 export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
@@ -29,6 +30,7 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
   label,
   elo,
   avatar,
+  skin = DEFAULT_BOARD_SKIN,
 }: PuzzleBattleBoardProps) {
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
 
@@ -111,11 +113,11 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
         return onPieceDrop(sourceSquare, targetSquare ?? "");
       },
       boardOrientation: flipped ? "black" : "white",
-      darkSquareStyle: { backgroundImage: BOARD_THEME.darkSquareGradient },
-      lightSquareStyle: { backgroundImage: BOARD_THEME.lightSquareGradient },
+      darkSquareStyle: { backgroundImage: skin.darkSquareGradient },
+      lightSquareStyle: { backgroundImage: skin.lightSquareGradient },
       boardStyle: {
         borderRadius: "2px",
-        boxShadow: BOARD_THEME.boardShadow,
+        boxShadow: skin.boardShadow,
       },
       allowDragging: !isOpponent,
       animationDurationInMs: 300,
@@ -127,7 +129,7 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
         handleSquareClick({ piece: null, square });
       },
     }),
-    [fen, flipped, handleSquareClick, isOpponent, onPieceDrop, squareStyles],
+    [fen, flipped, handleSquareClick, isOpponent, onPieceDrop, squareStyles, skin],
   );
 
   return (
@@ -189,7 +191,7 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
           </svg>
 
           <div className="w-full h-full rounded shadow-inner border border-cc-border">
-            <Chessboard options={chessboardOptions} />
+            <Chessboard {...(chessboardOptions as any)} />
           </div>
         </div>
 

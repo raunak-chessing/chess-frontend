@@ -5,6 +5,7 @@ export const userSchema = z.object({
   name: z.string(),
   rating: z.number(),
   image: z.string().nullable().optional(),
+  isOnline: z.boolean().optional(),
 });
 export type SocialUser = z.infer<typeof userSchema>;
 
@@ -78,4 +79,13 @@ export const socialApi = {
     
   declineChallenge: (challengeId: string) => 
     fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/challenge/${challengeId}`, { method: 'DELETE' }),
+
+  blockUser: (userId: string) => 
+    fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/block/${userId}`, { method: 'POST' }),
+    
+  unblockUser: (userId: string) => 
+    fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/block/${userId}`, { method: 'DELETE' }),
+    
+  reportUser: (userId: string, data: { reason: string, description?: string }) => 
+    fetchApi(z.object({ success: z.boolean().optional() }).passthrough(), `/api/social/report/${userId}`, { method: 'POST', body: JSON.stringify(data) }),
 };

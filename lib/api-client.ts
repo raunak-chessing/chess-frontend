@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import * as Sentry from '@sentry/nextjs';
 
-const API_URL = process.env.NEXT_PUBLIC_SENTRY_URL || process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
 export class ApiError extends Error {
   constructor(
@@ -41,13 +41,20 @@ export async function fetchApi<T>(
   path: string, 
   options?: RequestInit
 ): Promise<T> {
-  const fetchOptions = {
+  const headers: Record<string, string> = {
+    ...(options?.headers as Record<string, string> || {}),
+  };
+
+  if (options?.body && !headers["Content-Type"]) {
+    headers["Content-Type"] = "application/json";
+  }
+
+  const bodySize = typeof options?.body === "string" ? options.body.length : 0;
+  const fetchOptions: RequestInit = {
     ...options,
-    credentials: "include" as RequestCredentials,
-    headers: {
-      "Content-Type": "application/json",
-      ...(options?.headers || {}),
-    },
+    credentials: "include",
+    keepalive: bodySize < 64_000,
+    headers,
   };
 
   const res = await fetchWithRetry(`${API_URL}${path}`, fetchOptions);
@@ -77,12 +84,12 @@ export async function fetchApi<T>(
   try {
     const json = JSON.parse(text);
     return schema.parse(json);
-  } catch (err: any) {
+  } catch (err) {
     if (err instanceof z.ZodError) {
-      console.error(`Zod Validation Error at ${path}:`, err.errors);
+      console.error(`Zod Validation Error at ${path}:`, err.issues);
       Sentry.captureException(err, {
         tags: { type: 'zod_validation_error', url: path },
-        extra: { zodErrors: err.errors, rawText: text.substring(0, 500) }
+        extra: { zodErrors: err.issues, rawText: text.substring(0, 500) }
       });
       throw new Error(`Invalid API response shape for ${path}`);
     }

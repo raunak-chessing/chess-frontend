@@ -38,21 +38,22 @@ export default function OverworldPage() {
   useEffect(() => {
     if (!socket) return;
     
-    // Listen for real-time map updates (e.g. someone capturing a territory)
-    socket.on('hexUpdated', (updatedHex: any) => {
+    const handleHexUpdated = (updatedHex: any) => {
       setHexes(prev => prev.map(h => h.id === updatedHex.id ? updatedHex : h));
-    });
-
-    socket.on('queueJoined', () => setInQueue(true));
-    
-    socket.on('roomJoined', (data: { room: string; color: string }) => {
+    };
+    const handleQueueJoined = () => setInQueue(true);
+    const handleRoomJoined = (data: { room: string; color: string }) => {
       router.push(`/play/${data.room}`);
-    });
+    };
+
+    socket.on('hexUpdated', handleHexUpdated);
+    socket.on('queueJoined', handleQueueJoined);
+    socket.on('roomJoined', handleRoomJoined);
 
     return () => {
-      socket.off('hexUpdated');
-      socket.off('queueJoined');
-      socket.off('roomJoined');
+      socket.off('hexUpdated', handleHexUpdated);
+      socket.off('queueJoined', handleQueueJoined);
+      socket.off('roomJoined', handleRoomJoined);
     };
   }, [socket]);
 

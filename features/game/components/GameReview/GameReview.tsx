@@ -19,6 +19,7 @@ interface GameAnalysis {
   whiteAccuracy: number;
   blackAccuracy: number;
   moves: AnalyzedMove[];
+  narrative?: string;
 }
 
 interface GameReviewProps {
@@ -104,6 +105,18 @@ export function GameReview({ pgn, whitePlayerName, blackPlayerName }: GameReview
             <span className="text-xs font-bold uppercase tracking-wider opacity-60 mt-1">{blackPlayerName}</span>
           </div>
         </div>
+
+        {/* Epic Narrative */}
+        {analysis.narrative && (
+          <div className="bg-cc-bg-card border border-cc-border rounded-xl p-4">
+            <h3 className="text-xs font-bold uppercase text-cc-text-secondary mb-3 flex items-center gap-1">
+              <BrainCircuit className="w-3 h-3 text-cc-accent-purple" /> The Seer's Tale
+            </h3>
+            <p className="text-sm leading-relaxed text-cc-text-primary/90 italic font-serif">
+              {analysis.narrative}
+            </p>
+          </div>
+        )}
 
         {/* Chart */}
         <div className="bg-cc-bg-card border border-cc-border rounded-xl p-4 h-64">

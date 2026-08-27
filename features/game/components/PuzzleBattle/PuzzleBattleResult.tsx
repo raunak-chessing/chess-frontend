@@ -17,8 +17,8 @@ interface PuzzleBattleResultProps {
   onReturnHome: () => void;
 }
 
-function formatMs(ms: number): string {
-  if (ms > 30000) return "—";
+function formatMs(ms: number | null): string {
+  if (ms === null || ms > 30000) return "—";
   return `${(ms / 1000).toFixed(2)}s`;
 }
 

@@ -1,22 +1,22 @@
 import { useEffect, useState } from "react";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type EventCallback = (...args: any[]) => void;
 
-class WebSocketClient {
+export class WebSocketClient {
   public connected = false;
   private ws: WebSocket | null = null;
   private listeners: Record<string, EventCallback[]> = {};
   private url: string;
-  private reconnectTimer: any = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private reconnectAttempts = 0;
 
   constructor() {
-    let wsUrl = process.env.NEXT_PUBLIC_API_URL || "ws://localhost:3002";
+    let wsUrl = process.env.NEXT_PUBLIC_GAMESERVER_URL || "ws://localhost:8080";
     if (wsUrl.startsWith("http")) {
       wsUrl = wsUrl.replace(/^http/, "ws");
     }
-    // Go gameserver runs on port 8080 by default in this project (as seen in hub.go / main.go usually)
-    // Actually the standard is 3001 for Nest, 8080 for Go.
-    this.url = "ws://localhost:8080/ws";
+    this.url = `${wsUrl}/ws`;
   }
 
   connect() {
@@ -25,6 +25,7 @@ class WebSocketClient {
       this.ws = new WebSocket(this.url);
       this.ws.onopen = () => {
         this.connected = true;
+        this.reconnectAttempts = 0;
         this.trigger("connect");
       };
       this.ws.onclose = () => {
@@ -32,26 +33,32 @@ class WebSocketClient {
         this.trigger("disconnect");
         this.ws = null;
         if (!this.reconnectTimer) {
+          const backoff = Math.min(30000, 1000 * Math.pow(2, this.reconnectAttempts++));
+          const delay = backoff * (0.5 + Math.random() * 0.5);
           this.reconnectTimer = setTimeout(() => {
             this.reconnectTimer = null;
             this.connect();
-          }, 2000);
+          }, delay);
         }
       };
       this.ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
           const type = data.Type || data.type;
+          const gameId = data.GameID || data.gameId;
           let payload = data.Payload || data.payload;
-          if (!payload && data.GameID) {
+          if (payload && typeof payload === "object" && gameId && !("gameId" in payload)) {
+            payload = { ...payload, gameId };
+          }
+          if (!payload && gameId) {
             payload = data;
           }
           this.trigger(type, payload || data);
-        } catch (e) {
+        } catch (e: unknown) {
           console.error("WS parse error", e);
         }
       };
-    } catch (e) {
+    } catch (e: unknown) {
       console.error("WS connect error", e);
     }
   }
@@ -60,21 +67,27 @@ class WebSocketClient {
     this.ws?.close();
   }
 
-  on(event: string, cb: EventCallback) {
-    if (!this.listeners[event]) this.listeners[event] = [];
-    this.listeners[event].push(cb);
+  on(event: string, callback: EventCallback) {
+    if (!this.listeners[event]) {
+      this.listeners[event] = [];
+    }
+    this.listeners[event].push(callback);
   }
 
-  off(event: string, cb: EventCallback) {
+  off(event: string, callback: EventCallback) {
     if (!this.listeners[event]) return;
-    this.listeners[event] = this.listeners[event].filter(l => l !== cb);
+    this.listeners[event] = this.listeners[event].filter(l => l !== callback);
   }
 
-  emit(event: string, payload?: any) {
+  emit(event: string, payload?: unknown) {
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
       let gameId = "";
-      if (payload && payload.room) {
-          gameId = payload.room;
+      if (payload && typeof payload === "object") {
+        if ("room" in payload) {
+          gameId = (payload as { room: string }).room;
+        } else if ("gameId" in payload) {
+          gameId = (payload as { gameId: string }).gameId;
+        }
       }
       this.ws.send(JSON.stringify({
         type: event,
@@ -84,7 +97,7 @@ class WebSocketClient {
     }
   }
 
-  private trigger(event: string, ...args: any[]) {
+  private trigger(event: string, ...args: unknown[]) {
     if (this.listeners[event]) {
       this.listeners[event].forEach(cb => cb(...args));
     }
@@ -110,13 +123,6 @@ export function disconnectSocket(): void {
   socketInstance?.disconnect();
 }
 
-export function useSocket(): WebSocketClient | null {
-  const [sock, setSock] = useState<WebSocketClient | null>(null);
-  
-  useEffect(() => {
-    const s = getSocket();
-    setSock(s);
-  }, []);
-
-  return sock;
+export function useSocket(): WebSocketClient {
+  return getSocket();
 }

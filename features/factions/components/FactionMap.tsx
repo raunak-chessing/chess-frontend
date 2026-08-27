@@ -8,7 +8,7 @@ import type { ElementType } from 'react';
 import type { ChessUser } from '@/types/auth.types';
 import toast from 'react-hot-toast';
 
-const FACTION_ICONS: Record<string, ElementType> = {
+const FACTION_ICONS: Record<string, any> = {
   'The Queen\'s Vanguard': Shield,
   'The Sicilian Syndicate': Skull,
   'The Iron Knights': Swords,

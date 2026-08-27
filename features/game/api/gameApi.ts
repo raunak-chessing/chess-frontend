@@ -48,7 +48,7 @@ export const gameApi = {
       method: 'POST',
       body: JSON.stringify({ from, to }),
     }),
-  getMyDailyGames: (userId: string) => fetchApi(DailyGameListSchema, `/api/games/daily/my-games?userId=${userId}`),
+  getMyDailyGames: () => fetchApi(DailyGameListSchema, `/api/games/daily/my-games`),
   analyzePgn: (pgn: string) => fetchApi(AnalysisSchema, `/api/analysis/pgn`, {
     method: 'POST',
     body: JSON.stringify({ pgn }),

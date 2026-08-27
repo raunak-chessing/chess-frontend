@@ -50,7 +50,17 @@ export const useSocialStore = create<SocialState>((set) => ({
     return { onlineUsers: newSet };
   }),
   
-  setFriends: (friends) => set({ friends }),
+  setFriends: (friends) => set((state) => {
+    const onlineSet = new Set<string>();
+    friends.forEach(f => {
+      if ((f as any).isOnline) {
+        onlineSet.add(f.id);
+      }
+    });
+    // keep any users already in the online set just in case
+    state.onlineUsers.forEach(u => onlineSet.add(u));
+    return { friends, onlineUsers: onlineSet };
+  }),
   
   addChallenge: (challenge) => set((state) => ({
     incomingChallenges: [...state.incomingChallenges, challenge]

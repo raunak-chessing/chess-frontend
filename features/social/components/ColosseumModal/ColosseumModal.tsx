@@ -3,14 +3,15 @@
 import React, { useEffect, useState } from 'react';
 import { getSocket } from '@/lib/socket-client';
 import { ColosseumEventData } from './ColosseumModal.types';
-import { useAuthStore } from '@/features/auth/store/authStore';
+import { authClient } from '@/lib/auth-client';
 
 export function ColosseumModal() {
   const [eventData, setEventData] = useState<ColosseumEventData | null>(null);
   const [amount, setAmount] = useState<string>('100');
   const [bettingOn, setBettingOn] = useState<string | null>(null);
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle');
-  const { user } = useAuthStore();
+  const { data: session } = authClient.useSession();
+  const user = session?.user;
 
   useEffect(() => {
     const socket = getSocket();
@@ -35,7 +36,7 @@ export function ColosseumModal() {
     try {
       const socket = getSocket();
       // Emitting through socket for real-time wager placement
-      socket.emit('placeWager', {
+      (socket as any).emit('placeWager', {
         gameId: eventData.gameId,
         predictedWinnerId: bettingOn,
         amount: parseInt(amount, 10),

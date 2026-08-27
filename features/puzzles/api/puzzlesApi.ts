@@ -78,5 +78,13 @@ export const puzzlesApi = {
       method: 'POST',
       body: JSON.stringify({ puzzleId, success, timeSpentMs }),
     });
+  },
+
+  getCustomPuzzles: async (theme: string, limit: number = 10): Promise<Puzzle[]> => {
+    const params = new URLSearchParams({ limit: limit.toString() });
+    if (theme && theme !== 'all') {
+      params.append('theme', theme);
+    }
+    return fetchApi(z.array(PuzzleSchema), `/api/puzzles/custom?${params.toString()}`);
   }
 };

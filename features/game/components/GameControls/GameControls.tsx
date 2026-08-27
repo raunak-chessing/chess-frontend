@@ -7,7 +7,7 @@ interface GameControlsProps {
   flipped: boolean;
   hasHistory: boolean;
   joinedRoom: string;
-  playerColor: "w" | "b" | null;
+  playerColor: "w" | "b" | "s" | null;
   isGameOver: boolean;
   viewMode: "3d" | "2.5d" | "2d";
   onViewModeChange: (mode: "3d" | "2.5d" | "2d") => void;
@@ -17,6 +17,8 @@ interface GameControlsProps {
   onReset: () => void;
   onReturnHome: () => void;
   onResign: () => void;
+  onOfferDraw?: () => void;
+  onAbort?: () => void;
   onReviewGame?: () => void;
 }
 
@@ -34,6 +36,8 @@ const GameControls = memo(function GameControls({
   onReset,
   onReturnHome,
   onResign,
+  onOfferDraw,
+  onAbort,
   onReviewGame,
 }: GameControlsProps) {
   const [showOptionsPopover, setShowOptionsPopover] = useState(false);
@@ -149,29 +153,57 @@ const GameControls = memo(function GameControls({
                 Auto-Flip Board on Turn
               </label>
 
-              {hasHistory && !isGameOver && (
+              {!isGameOver && onAbort && !hasHistory && (
                 <button
                   onClick={() => {
-                    onResign();
+                    onAbort();
                     setShowOptionsPopover(false);
                   }}
-                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-800/60 hover:border-red-700 transition-all text-red-200 cursor-pointer"
+                  className="w-full flex items-center justify-center gap-2 px-4 py-2 text-xs font-semibold rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700/60 transition-all text-slate-200 cursor-pointer"
                 >
-                  🏳️ Give Up / Resign
+                  🛑 Abort Game
                 </button>
               )}
 
+              {hasHistory && !isGameOver && (
+                <div className="flex gap-2 w-full">
+                  <button
+                    onClick={() => {
+                      onResign();
+                      setShowOptionsPopover(false);
+                    }}
+                    className="flex-1 flex items-center justify-center gap-2 px-2 py-2 text-xs font-semibold rounded-xl bg-red-950/80 hover:bg-red-900 border border-red-800/60 transition-all text-red-200 cursor-pointer"
+                  >
+                    🏳️ Resign
+                  </button>
+                  
+                  {onOfferDraw && (
+                    <button
+                      onClick={() => {
+                        onOfferDraw();
+                        setShowOptionsPopover(false);
+                      }}
+                      className="flex-1 flex items-center justify-center gap-2 px-2 py-2 text-xs font-semibold rounded-xl bg-blue-950/80 hover:bg-blue-900 border border-blue-800/60 transition-all text-blue-200 cursor-pointer"
+                    >
+                      🤝 Draw
+                    </button>
+                  )}
+                </div>
+              )}
+
               <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    onUndo();
-                    setShowOptionsPopover(false);
-                  }}
-                  disabled={!hasHistory}
-                  className="flex-1 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer bg-cc-bg-input border-cc-border text-cc-text-primary hover:bg-cc-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  ↩️ Undo Move
-                </button>
+                {gameMode !== "online" && (
+                  <button
+                    onClick={() => {
+                      onUndo();
+                      setShowOptionsPopover(false);
+                    }}
+                    disabled={!hasHistory}
+                    className="flex-1 py-2 text-xs font-bold rounded-xl border transition-all cursor-pointer bg-cc-bg-input border-cc-border text-cc-text-primary hover:bg-cc-bg-hover disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    ↩️ Undo Move
+                  </button>
+                )}
 
                 <button
                   onClick={() => {

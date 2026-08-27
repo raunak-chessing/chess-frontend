@@ -12,6 +12,7 @@ export const UserSchema = z.object({
   ratingRapid: z.number(),
   ratingDaily: z.number(),
   createdAt: z.string(),
+  isFlaggedForCheating: z.boolean().optional(),
 });
 
 export const BasicGameSchema = z.object({

@@ -18,30 +18,20 @@ import { TIME_CONTROLS } from "../../constants/setupOptions";
 import { SelectableCard } from "../../../../components/ui/SelectableCard";
 import { SectionHeader } from "../../../../components/ui/SectionHeader";
 import { Card } from "../../../../components/ui/Card";
+import { classifyTimeControl } from "@/lib/timeControl";
 
 function getTimeControlInfo(tc: string) {
   const preset = TIME_CONTROLS.find((t) => t.value === tc);
   if (preset) return preset;
 
-  if (tc.toLowerCase().includes("day")) {
-    return { name: tc, value: tc, type: "Daily" };
-  }
+  const type = classifyTimeControl(tc);
+  if (type === "Daily") return { name: tc, value: tc, type };
 
   const parts = tc.split(/[|+]/);
-  if (parts.length === 0) return { name: "Custom", value: tc, type: "Rapid" };
-
   const baseMinutes = parseFloat(parts[0]);
-  if (isNaN(baseMinutes)) return { name: "Custom", value: tc, type: "Rapid" };
+  if (parts.length === 0 || isNaN(baseMinutes)) return { name: "Custom", value: tc, type };
 
   const incrementSeconds = parts.length > 1 ? parseFloat(parts[1]) : 0;
-  const totalSeconds = baseMinutes * 60 + 40 * (isNaN(incrementSeconds) ? 0 : incrementSeconds);
-
-  let type = "Rapid";
-  if (totalSeconds < 180) {
-    type = "Bullet";
-  } else if (totalSeconds < 600) {
-    type = "Blitz";
-  }
 
   return {
     name: `${baseMinutes}+${incrementSeconds}`,

@@ -5,7 +5,7 @@ import dynamic from "next/dynamic";
 const Chessboard = dynamic(() => import("react-chessboard").then(mod => mod.Chessboard), { ssr: false });
 import type { ChessboardOptions } from "react-chessboard";
 import type { BoardProps } from "./Board.types";
-import { BOARD_THEME } from "../../constants/boardTheme";
+import { DEFAULT_BOARD_SKIN } from "../../constants/boardTheme";
 import { Chess } from "chess.js";
 
 const Board = memo(function Board({
@@ -17,6 +17,7 @@ const Board = memo(function Board({
   onPremoveClear,
   isDraggablePiece,
   onSquareClick,
+  skin = DEFAULT_BOARD_SKIN,
 }: BoardProps) {
 
   const handlePieceDrop = useCallback<NonNullable<ChessboardOptions["onPieceDrop"]>>(
@@ -45,11 +46,11 @@ const Board = memo(function Board({
       position,
       onPieceDrop: handlePieceDrop,
       boardOrientation: flipped ? "black" : "white",
-      darkSquareStyle: { backgroundImage: BOARD_THEME.darkSquareGradient },
-      lightSquareStyle: { backgroundImage: BOARD_THEME.lightSquareGradient },
+      darkSquareStyle: { backgroundImage: skin.darkSquareGradient },
+      lightSquareStyle: { backgroundImage: skin.lightSquareGradient },
       boardStyle: {
         borderRadius: "2px",
-        boxShadow: BOARD_THEME.boardShadow,
+        boxShadow: skin.boardShadow,
       },
       allowDragOffBoard: true,
       allowDrawingArrows: true,
@@ -69,7 +70,7 @@ const Board = memo(function Board({
         onSquareClick?.(square);
       },
     }),
-    [flipped, handlePieceDrop, isDraggablePiece, onSquareClick, position, squareStyles],
+    [flipped, handlePieceDrop, isDraggablePiece, onSquareClick, position, squareStyles, skin],
   );
 
   const handleContextMenu = useCallback((e: MouseEvent) => {

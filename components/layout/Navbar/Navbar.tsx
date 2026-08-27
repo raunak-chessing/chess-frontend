@@ -2,8 +2,12 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Users } from 'lucide-react';
+import { Users, Package, Store, Coins, Sparkles } from 'lucide-react';
 import { useSocialStore } from "@/features/social/store/socialStore";
+import { InventoryModal } from "@/features/inventory/components";
+import { ShopModal } from "@/features/shop/components/ShopModal/ShopModal";
+import { inventoryApi } from "@/features/inventory/api/inventoryApi";
+import { useEffect, useState, useCallback } from "react";
 
 const NAV_LINKS = [
   { href: "/", label: "Home", icon: "🏠" },
@@ -25,6 +29,20 @@ export default function Navbar() {
   const router = useRouter();
   const { data: session, isPending } = authClient.useSession();
   const { toggleSidebar } = useSocialStore();
+  const [isInventoryOpen, setIsInventoryOpen] = useState(false);
+  const [isShopOpen, setIsShopOpen] = useState(false);
+  const [wallet, setWallet] = useState<{ gold: number; aetherium: number } | null>(null);
+
+  const refreshWallet = useCallback(() => {
+    if (!session) return;
+    inventoryApi.getMyInventory()
+      .then((inv) => setWallet({ gold: inv.gold, aetherium: inv.aetherium }))
+      .catch(() => {});
+  }, [session]);
+
+  useEffect(() => {
+    refreshWallet();
+  }, [refreshWallet]);
 
   return (
     <nav className="sticky top-0 z-50 w-full flex items-center justify-between px-4 md:px-6 h-14 border-b bg-[var(--cc-bg-card)] border-[var(--cc-border)]">
@@ -67,12 +85,36 @@ export default function Navbar() {
           <div className="h-8 w-20 rounded animate-pulse bg-[var(--cc-bg-input)]" />
         ) : session ? (
           <div className="flex items-center gap-3">
+            {wallet && (
+              <div className="hidden lg:flex items-center gap-2.5 text-xs font-mono text-[var(--cc-text-secondary)]">
+                <span className="flex items-center gap-1">
+                  <Coins size={13} className="text-amber-500" /> {wallet.gold.toLocaleString()}
+                </span>
+                <span className="flex items-center gap-1">
+                  <Sparkles size={13} className="text-purple-400" /> {wallet.aetherium.toLocaleString()}
+                </span>
+              </div>
+            )}
             <button
               onClick={toggleSidebar}
               className="p-1.5 rounded-md transition-colors text-[var(--cc-text-secondary)] hover:text-[var(--cc-green)] hover:bg-[var(--cc-bg-hover)]"
               title="Friends"
             >
               <Users size={20} />
+            </button>
+            <button
+              onClick={() => setIsShopOpen(true)}
+              className="p-1.5 rounded-md transition-colors text-[var(--cc-text-secondary)] hover:text-[var(--cc-green)] hover:bg-[var(--cc-bg-hover)]"
+              title="Shop"
+            >
+              <Store size={20} />
+            </button>
+            <button
+              onClick={() => setIsInventoryOpen(true)}
+              className="p-1.5 rounded-md transition-colors text-[var(--cc-text-secondary)] hover:text-[var(--cc-green)] hover:bg-[var(--cc-bg-hover)]"
+              title="Inventory"
+            >
+              <Package size={20} />
             </button>
             <button
               onClick={() => router.push("/profile")}
@@ -124,6 +166,13 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      {isInventoryOpen && (
+        <InventoryModal onClose={() => { setIsInventoryOpen(false); refreshWallet(); }} />
+      )}
+      {isShopOpen && (
+        <ShopModal onClose={() => { setIsShopOpen(false); refreshWallet(); }} />
+      )}
     </nav>
   );
 }

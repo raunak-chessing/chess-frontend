@@ -30,7 +30,7 @@ export default function ProfileDetailPage({ params }: { params: Promise<{ userId
     });
 
     const fetchDailyGames = isOwnProfile
-      ? gameApi.getMyDailyGames(userId).catch(() => [])
+      ? gameApi.getMyDailyGames().catch(() => [])
       : Promise.resolve([]);
 
     Promise.all([fetchProfile, fetchDailyGames])
@@ -99,11 +99,20 @@ export default function ProfileDetailPage({ params }: { params: Promise<{ userId
           <span className="font-mono text-[10px] text-cc-text-muted uppercase tracking-widest">Profile Stats</span>
         </div>
 
+        {data.user.isFlaggedForCheating && (
+          <div className="bg-red-500/10 border border-red-500/50 rounded-xl p-4 flex items-center justify-center gap-3">
+            <span className="text-xl">⚠️</span>
+            <p className="text-sm font-semibold text-red-500">
+              This account has been flagged for violating Fair Play policies.
+            </p>
+          </div>
+        )}
+
         {/* 1. Header Card */}
         <ProfileHeader user={data.user} />
 
         {/* 2. Rating Pool Cards Grid */}
-        <StatsGrid ratings={ratings} stats={data.stats} />
+        <StatsGrid ratings={ratings} stats={data.stats as any} />
 
         {/* 3. Advanced Insights */}
         <div className="w-full">
@@ -122,7 +131,7 @@ export default function ProfileDetailPage({ params }: { params: Promise<{ userId
             <RatingChart userId={data.user.id} />
           </div>
           <div className="md:col-span-6 lg:col-span-5">
-            <RecentGames recentGames={data.recentGames} userId={data.user.id} />
+            <RecentGames recentGames={data.recentGames as any} userId={data.user.id} />
           </div>
         </div>
       </div>

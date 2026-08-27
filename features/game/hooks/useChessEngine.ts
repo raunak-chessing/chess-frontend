@@ -42,6 +42,7 @@ export function useChessEngine({
     }
 
     const worker = new Worker("/stockfish/stockfish-18-lite-single.js");
+    let moveTimeout: ReturnType<typeof setTimeout> | null = null;
 
     worker.onmessage = (event: MessageEvent) => {
       const line = event.data;
@@ -51,10 +52,10 @@ export function useChessEngine({
         if (bestMoveStr && bestMoveStr !== "(none)") {
           const from = bestMoveStr.substring(0, 2);
           const to = bestMoveStr.substring(2, 4);
-          
+
           // Add artificial delay to simulate "thinking" and make it feel more human
           const delay = Math.random() * 1000 + 500; // 500ms to 1500ms
-          setTimeout(() => {
+          moveTimeout = setTimeout(() => {
             applyMove(from, to);
           }, delay);
         }
@@ -69,6 +70,7 @@ export function useChessEngine({
     worker.postMessage(`go depth ${depth}`);
 
     return () => {
+      if (moveTimeout) clearTimeout(moveTimeout);
       worker.terminate();
     };
   }, [fen, gameMode, game, applyMove, botDifficulty]);

@@ -42,6 +42,27 @@ export function TournamentsList() {
     }
   };
 
+  const handleCreateSwiss = async () => {
+    if (!session?.user) {
+      toast.error('Must be logged in to create a Swiss tournament');
+      return;
+    }
+    const name = prompt('Swiss tournament name:');
+    if (!name) return;
+    try {
+      const newSwiss = await tournamentsApi.createSwiss({
+        name,
+        timeControl: '10|0',
+        maxRounds: 5,
+        startsInMinutes: 5,
+      });
+      toast.success('Swiss tournament created!');
+      router.push(`/tournaments/${newSwiss.id}`);
+    } catch (e) {
+      toast.error('Failed to create Swiss tournament');
+    }
+  };
+
   if (loading) {
     return <div className="text-center py-20 text-text-secondary">Loading tournaments...</div>;
   }
@@ -53,12 +74,20 @@ export function TournamentsList() {
           <h1 className="text-3xl font-bold text-text-primary mb-2">Arena Tournaments</h1>
           <p className="text-text-secondary">Compete in fast-paced arenas, streak for extra points, and climb the leaderboards!</p>
         </div>
-        <button 
-          onClick={handleCreateArena}
-          className="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md active:translate-y-1"
-        >
-          + Create Arena (Test)
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleCreateArena}
+            className="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md active:translate-y-1"
+          >
+            + Create Arena (Test)
+          </button>
+          <button
+            onClick={handleCreateSwiss}
+            className="bg-surface-highlight hover:bg-surface border border-primary text-primary px-6 py-3 rounded-xl font-bold transition-all shadow-md active:translate-y-1"
+          >
+            + Create Swiss (Test)
+          </button>
+        </div>
       </div>
 
       <div className="space-y-4">

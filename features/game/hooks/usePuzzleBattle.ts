@@ -25,8 +25,8 @@ export interface Emote {
 
 export interface RoundRecord {
   winner: "player" | "opponent";
-  playerTimeMs: number;
-  opponentTimeMs: number;
+  playerTimeMs: number | null;
+  opponentTimeMs: number | null;
 }
 
 const DIFFICULTY_CONFIG: Record<
@@ -130,7 +130,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
   );
 
   const resolveRound = useCallback(
-    (winner: "player" | "opponent", playerMs: number, opponentMs: number) => {
+    (winner: "player" | "opponent", playerMs: number | null, opponentMs: number | null) => {
       clearTimers();
 
       const record: RoundRecord = {
@@ -286,7 +286,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
         } else {
           const elapsed = Date.now() - roundStartTime.current;
           setTimeout(() => {
-            resolveRound("opponent", elapsed + 5000, elapsed);
+            resolveRound("opponent", null, elapsed);
           }, 600);
         }
       };
@@ -447,7 +447,7 @@ export function usePuzzleBattle(difficulty: BattleDifficulty) {
           if (isOnline) {
             sendPuzzleSolved(elapsed, roundIndex);
           } else {
-            resolveRound("player", elapsed, (config?.maxMs ?? 5000) + 1000);
+            resolveRound("player", elapsed, null);
           }
           return true;
         }

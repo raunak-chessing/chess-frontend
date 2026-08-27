@@ -60,7 +60,7 @@ function levenshteinDistance(a: string, b: string): number {
 }
 
 function normalizeTranscript(text: string): string {
-  let lower = text.toLowerCase().trim();
+  const lower = text.toLowerCase().trim();
   // Basic phonetic mapping before fuzzy match
   const map: Record<string, string> = {
     "night": "n", "knight": "n", "bishop": "b", "rook": "r", "queen": "q", "king": "k",
@@ -72,7 +72,7 @@ function normalizeTranscript(text: string): string {
   };
   
   const words = lower.split(/\s+/).filter(w => w !== "pawn");
-  let normalized = words.map(w => map[w] !== undefined ? map[w] : w).join("");
+  const normalized = words.map(w => map[w] !== undefined ? map[w] : w).join("");
   return normalized.replace(/[^a-z0-9ox-]/g, "");
 }
 

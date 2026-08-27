@@ -10,6 +10,7 @@ import { CapturedPieces } from "./CapturedPieces";
 import { GameStatusBar } from "./GameStatusBar";
 import { GameControls } from "./GameControls";
 import MoveHistory from "./MoveHistory/MoveHistory";
+import { PromotionPicker } from "./PromotionPicker";
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/Spinner";
 import { toast } from "react-hot-toast";
@@ -67,12 +68,14 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
       // DailyGames can use PromotionPicker if we wire it up, but since it's custom logic:
       try {
         const moves = gameState.game.moves({ verbose: true });
-        const isPromotion = moves.some(m => m.from === source && m.to === target && m.promotion);
+        const isPromotion = moves.some((m: any) => m.from === source && m.to === target && m.promotion);
         
-        // Wait, since DailyGameView has its own move handler, we would need to duplicate PromotionPicker.
-        // For now we'll stick to auto-queen here unless we refactor it to use useGameState's picker.
-        // Actually, just pass "q" if it's a promotion.
-        const move = gameState.game.move({ from: source, to: target, promotion: isPromotion ? "q" : undefined });
+        if (isPromotion) {
+          gameState.setPendingPromotion({ from: source, to: target });
+          return false;
+        }
+
+        const move = gameState.game.move({ from: source, to: target });
         if (!move) return false;
 
         const nextFen = gameState.game.fen();
@@ -93,6 +96,29 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
     },
     [gameState, gameData, userId, gameId, fetchGame]
   );
+
+  const resolveDailyPromotion = useCallback((piece: "q" | "r" | "b" | "n") => {
+    if (!gameState.pendingPromotion) return;
+    const { from, to } = gameState.pendingPromotion;
+
+    try {
+      const move = gameState.game.move({ from, to, promotion: piece });
+      if (move) {
+        const nextFen = gameState.game.fen();
+        gameState.setFen(nextFen);
+        
+        gameApi.makeDailyMove(gameId, from, to)
+          .then(() => fetchGame())
+          .catch(() => {
+            gameState.applyUndo();
+            toast.error("Move rejected by server. Your move has been reverted.");
+          });
+      }
+    } catch {
+      // Ignore invalid moves
+    }
+    gameState.setPendingPromotion(null);
+  }, [gameState, gameId, fetchGame]);
 
   const handleSquareClick = useCallback(
     (square: string) => {
@@ -173,6 +199,13 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
               squareStyles={gameState.getSquareStyles()}
               viewMode="2d"
             />
+            {gameState.pendingPromotion && (
+              <PromotionPicker
+                color={gameState.game.turn()}
+                onSelect={resolveDailyPromotion}
+                onCancel={() => gameState.setPendingPromotion(null)}
+              />
+            )}
           </div>
         </div>
 

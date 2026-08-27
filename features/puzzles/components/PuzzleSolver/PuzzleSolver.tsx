@@ -1,4 +1,4 @@
-import { memo, useState, useEffect, useCallback } from "react";
+import { memo, useState, useEffect, useCallback, useRef } from "react";
 import { Chess } from "chess.js";
 import { Board } from "@/features/game/components/Board";
 import { playSound } from "@/lib/utils";
@@ -26,9 +26,14 @@ export const PuzzleSolver = memo(function PuzzleSolver({
   const [statusColor, setStatusColor] = useState("text-cc-text-primary");
   const [isSolved, setIsSolved] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
+  const autoReplyTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Sync FEN when starting a new puzzle
   useEffect(() => {
+    if (autoReplyTimeout.current) {
+      clearTimeout(autoReplyTimeout.current);
+      autoReplyTimeout.current = null;
+    }
     if (puzzle) {
       const c = new Chess(puzzle.fen);
       setLocalChess(c);
@@ -39,6 +44,12 @@ export const PuzzleSolver = memo(function PuzzleSolver({
       setStatusMessage("Find the best move!");
       setStatusColor("text-cc-text-primary");
     }
+    return () => {
+      if (autoReplyTimeout.current) {
+        clearTimeout(autoReplyTimeout.current);
+        autoReplyTimeout.current = null;
+      }
+    };
   }, [puzzle]);
 
   const handlePieceDrop = useCallback(
@@ -70,7 +81,8 @@ export const PuzzleSolver = memo(function PuzzleSolver({
               setCurrentMoveIdx(nextIdx);
               
               // If the next move is the opponent's move, make it automatically
-              setTimeout(() => {
+              if (autoReplyTimeout.current) clearTimeout(autoReplyTimeout.current);
+              autoReplyTimeout.current = setTimeout(() => {
                 const oppMoveStr = puzzle.moves[nextIdx];
                 if (oppMoveStr) {
                   const oppSource = oppMoveStr.substring(0, 2);

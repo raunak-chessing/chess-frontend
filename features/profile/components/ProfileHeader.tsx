@@ -1,4 +1,5 @@
 import { memo } from "react";
+import { useDirectMessages } from "@/features/social/hooks/useDirectMessages";
 
 interface ProfileHeaderProps {
   user: {
@@ -16,6 +17,13 @@ interface ProfileHeaderProps {
 }
 
 export const ProfileHeader = memo(function ProfileHeader({ user }: ProfileHeaderProps) {
+  const { openPanel, loadThread } = useDirectMessages();
+
+  const handleMessage = () => {
+    openPanel();
+    loadThread(user.id);
+  };
+
   const lastActiveTimes = [
     user.lastActiveBullet,
     user.lastActiveBlitz,
@@ -86,7 +94,10 @@ export const ProfileHeader = memo(function ProfileHeader({ user }: ProfileHeader
           <button className="flex-1 md:flex-none px-4 py-2.5 text-xs font-bold rounded-xl bg-cc-green hover:bg-cc-green-hover text-white transition-all shadow-md active:scale-95 cursor-pointer">
             Challenge
           </button>
-          <button className="flex-1 md:flex-none px-4 py-2.5 text-xs font-bold rounded-xl bg-cc-bg-sidebar/60 hover:bg-cc-bg-sidebar border border-cc-border-light text-cc-text-secondary hover:text-white transition-all active:scale-95 cursor-pointer">
+          <button
+            onClick={handleMessage}
+            className="flex-1 md:flex-none px-4 py-2.5 text-xs font-bold rounded-xl bg-cc-bg-sidebar/60 hover:bg-cc-bg-sidebar border border-cc-border-light text-cc-text-secondary hover:text-white transition-all active:scale-95 cursor-pointer"
+          >
             Message
           </button>
         </div>
