@@ -51,7 +51,7 @@ export function MessagesPanel() {
       >
         <MessageCircle size={24} />
         {unreadTotal > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full border-2 border-surface">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full border-2 border-cc-bg-card">
             {unreadTotal}
           </span>
         )}
@@ -60,20 +60,20 @@ export function MessagesPanel() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-40 w-80 h-96 flex flex-col rounded-2xl shadow-2xl bg-surface border border-surface-highlight overflow-hidden">
-      <div className="px-4 py-3 bg-surface-highlight flex items-center justify-between">
+    <div className="fixed bottom-4 left-4 z-40 w-80 h-96 flex flex-col rounded-2xl shadow-2xl bg-cc-bg-card border border-cc-border-light overflow-hidden">
+      <div className="px-4 py-3 bg-cc-bg-sidebar flex items-center justify-between">
         <div className="flex items-center gap-2">
           {activeThreadPartnerId && (
-            <button onClick={closeThread} className="text-text-secondary hover:text-text-primary transition-colors">
+            <button onClick={closeThread} className="text-cc-text-secondary hover:text-cc-text-primary transition-colors">
               <ArrowLeft size={16} />
             </button>
           )}
           <MessageCircle size={16} className="text-primary" />
-          <h3 className="font-bold text-sm text-text-primary">
+          <h3 className="font-bold text-sm text-cc-text-primary">
             {activePartner ? activePartner.name : 'Messages'}
           </h3>
         </div>
-        <button onClick={closePanel} className="text-text-secondary hover:text-text-primary transition-colors">
+        <button onClick={closePanel} className="text-cc-text-secondary hover:text-cc-text-primary transition-colors">
           <X size={16} />
         </button>
       </div>
@@ -86,7 +86,7 @@ export function MessagesPanel() {
                 key={message.id}
                 className={`max-w-[85%] px-3 py-1.5 rounded-lg text-sm break-words ${
                   message.senderId === activeThreadPartnerId
-                    ? 'self-start bg-surface-highlight text-text-primary'
+                    ? 'self-start bg-cc-bg-sidebar text-cc-text-primary'
                     : 'self-end bg-primary text-white'
                 }`}
               >
@@ -95,13 +95,13 @@ export function MessagesPanel() {
             ))}
             <div ref={endRef} />
           </div>
-          <form onSubmit={handleSend} className="p-3 border-t border-surface-highlight flex gap-2">
+          <form onSubmit={handleSend} className="p-3 border-t border-cc-border-light flex gap-2">
             <input
               type="text"
               placeholder="Message..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 bg-surface-highlight text-sm text-text-primary px-3 py-2 rounded-lg border border-transparent focus:outline-none focus:border-primary transition-colors"
+              className="flex-1 bg-cc-bg-sidebar text-sm text-cc-text-primary px-3 py-2 rounded-lg border border-transparent focus:outline-none focus:border-primary transition-colors"
             />
             <button
               type="submit"
@@ -115,27 +115,27 @@ export function MessagesPanel() {
       ) : (
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
           {conversations.length === 0 ? (
-            <div className="text-sm text-text-secondary text-center py-8">No conversations yet.</div>
+            <div className="text-sm text-cc-text-secondary text-center py-8">No conversations yet.</div>
           ) : (
             conversations.map((conversation) => (
               <button
                 key={conversation.partner.id}
                 onClick={() => loadThread(conversation.partner.id)}
-                className="w-full flex items-center gap-3 p-2 hover:bg-surface-highlight rounded-lg transition-colors text-left"
+                className="w-full flex items-center gap-3 p-2 hover:bg-cc-bg-sidebar rounded-lg transition-colors text-left"
               >
-                <div className="w-8 h-8 rounded-full bg-surface-highlight flex items-center justify-center text-text-primary font-bold shrink-0">
+                <div className="w-8 h-8 rounded-full bg-cc-bg-sidebar flex items-center justify-center text-cc-text-primary font-bold shrink-0">
                   {conversation.partner.name.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <span className="text-sm font-medium text-text-primary truncate">{conversation.partner.name}</span>
+                    <span className="text-sm font-medium text-cc-text-primary truncate">{conversation.partner.name}</span>
                     {conversation.unreadCount > 0 && (
                       <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
                         {conversation.unreadCount}
                       </span>
                     )}
                   </div>
-                  <span className="text-xs text-text-secondary truncate block">{conversation.lastMessage.content}</span>
+                  <span className="text-xs text-cc-text-secondary truncate block">{conversation.lastMessage.content}</span>
                 </div>
               </button>
             ))

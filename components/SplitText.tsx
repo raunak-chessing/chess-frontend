@@ -37,7 +37,7 @@ const SplitText: React.FC<SplitTextProps> = ({
   textAlign = 'center',
   onLetterAnimationComplete
 }) => {
-  const ref = useRef<HTMLParagraphElement>(null);
+  const ref = useRef<HTMLElement>(null);
   const animationCompletedRef = useRef(false);
   const onCompleteRef = useRef(onLetterAnimationComplete);
   const [fontsLoaded, setFontsLoaded] = useState<boolean>(false);
@@ -162,12 +162,15 @@ const SplitText: React.FC<SplitTextProps> = ({
       willChange: 'transform, opacity'
     };
     const classes = `split-parent overflow-hidden inline-block whitespace-normal ${className}`;
-    const Tag = (tag || 'p') as React.ElementType;
 
-    return (
-      <Tag ref={ref} style={style} className={classes}>
-        {text}
-      </Tag>
+    // Rendered via createElement rather than JSX: a polymorphic tag union
+    // (h1..h6 | p | span) makes JSX's ref/children prop resolution collapse
+    // to `never`, since each intrinsic element expects a differently-typed
+    // ref. createElement's overloads handle the union correctly.
+    return React.createElement(
+      tag || 'p',
+      { ref, style, className: classes },
+      text
     );
   };
 

@@ -10,6 +10,16 @@ FROM base AS builder
 WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
+
+# Next.js inlines NEXT_PUBLIC_* values into the client bundle at build time,
+# not runtime — these must be build args, not just container env vars.
+ARG NEXT_PUBLIC_API_URL
+ARG NEXT_PUBLIC_GAMESERVER_URL
+ARG NEXT_PUBLIC_SENTRY_DSN
+ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+ENV NEXT_PUBLIC_GAMESERVER_URL=$NEXT_PUBLIC_GAMESERVER_URL
+ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
+
 RUN pnpm run build
 
 FROM base AS runtime

@@ -6,6 +6,7 @@ const Chessboard = dynamic(() => import("react-chessboard").then(mod => mod.Ches
 import type { ChessboardOptions } from "react-chessboard";
 import { Chess, Square } from "chess.js";
 import { DEFAULT_BOARD_SKIN, type BoardSkin } from "../../constants/boardTheme";
+import { WoodGradientDefs } from "../WoodGradientDefs";
 
 interface PuzzleBattleBoardProps {
   fen: string;
@@ -97,7 +98,7 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
   );
 
   const borderClass = isWinner
-    ? "ring-4 ring-cc-green shadow-[0_0_40px_rgba(129,182,76,0.45)]"
+    ? "ring-4 ring-cc-green shadow-[0_0_40px_rgba(var(--cc-green-rgb),0.45)]"
     : isLoser
     ? "ring-4 ring-cc-accent-red shadow-[0_0_30px_rgba(204,51,51,0.35)]"
     : isOpponent
@@ -175,20 +176,7 @@ export const PuzzleBattleBoard = memo(function PuzzleBattleBoard({
         <div
           className={`w-full h-full wood-board-frame rounded-2xl select-none flex items-center justify-center p-[4.5%] board-is-2d`}
         >
-          <svg className="absolute w-0 h-0 pointer-events-none" aria-hidden="true">
-            <defs>
-              <radialGradient id="lightWoodGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-                <stop offset="0%" stopColor="#fdf0e2" />
-                <stop offset="65%" stopColor="#e5c5aa" />
-                <stop offset="100%" stopColor="#bfa18a" />
-              </radialGradient>
-              <radialGradient id="darkWoodGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-                <stop offset="0%" stopColor="#5d554e" />
-                <stop offset="65%" stopColor="#3c342f" />
-                <stop offset="100%" stopColor="#1e1815" />
-              </radialGradient>
-            </defs>
-          </svg>
+          <WoodGradientDefs />
 
           <div className="w-full h-full rounded shadow-inner border border-cc-border">
             <Chessboard {...(chessboardOptions as any)} />

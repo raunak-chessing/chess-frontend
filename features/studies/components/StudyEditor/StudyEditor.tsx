@@ -142,21 +142,21 @@ export function StudyEditor({ studyId }: { studyId: string }) {
   if (!study) return <div className="p-8 text-center">Study not found</div>;
 
   return (
-    <div className="max-w-7xl mx-auto p-4 flex flex-col md:flex-row gap-6 h-[calc(100vh-4rem)]">
+    <div className="max-w-7xl mx-auto p-4 flex flex-col lg:flex-row gap-6 h-[calc(100vh-4rem)]">
       {/* Sidebar for Chapters */}
-      <div className="w-full md:w-64 bg-surface border border-surface-highlight rounded-lg p-4 flex flex-col h-full">
-        <h2 className="text-xl font-bold text-text-primary mb-4">{study.title}</h2>
-        <div className="text-sm text-text-secondary mb-4">by {study.owner.name}</div>
-        
+      <div className="w-full lg:w-64 bg-cc-bg-card border border-cc-border-light rounded-lg p-4 flex flex-col h-full">
+        <h2 className="text-xl font-bold text-cc-text-primary mb-4">{study.title}</h2>
+        <div className="text-sm text-cc-text-secondary mb-4">by {study.owner.name}</div>
+
         <div className="flex-1 overflow-y-auto space-y-2">
           {study.chapters?.map((chapter, idx) => (
             <button
               key={chapter.id}
               onClick={() => handleChapterSelect(chapter)}
               className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors ${
-                activeChapterId === chapter.id 
-                  ? 'bg-primary text-white font-medium' 
-                  : 'text-text-primary hover:bg-surface-highlight'
+                activeChapterId === chapter.id
+                  ? 'bg-primary text-white font-medium'
+                  : 'text-cc-text-primary hover:bg-cc-bg-sidebar'
               }`}
             >
               {idx + 1}. {chapter.title}
@@ -165,9 +165,9 @@ export function StudyEditor({ studyId }: { studyId: string }) {
         </div>
 
         {isOwner && (
-          <button 
+          <button
             onClick={handleAddChapter}
-            className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-surface-highlight hover:bg-[var(--cc-border)] text-text-primary rounded-md transition-colors"
+            className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-cc-bg-sidebar hover:bg-[var(--cc-border)] text-cc-text-primary rounded-md transition-colors"
           >
             <Plus size={16} /> Add Chapter
           </button>
@@ -176,10 +176,10 @@ export function StudyEditor({ studyId }: { studyId: string }) {
 
       {/* Main Board Area */}
       <div className="flex-1 flex flex-col gap-4">
-        <div className="flex justify-between items-center bg-surface p-4 rounded-lg border border-surface-highlight">
-          <h3 className="text-lg font-bold text-text-primary">{activeChapter?.title || 'No Chapter Selected'}</h3>
+        <div className="flex justify-between items-center bg-cc-bg-card p-4 rounded-lg border border-cc-border-light">
+          <h3 className="text-lg font-bold text-cc-text-primary">{activeChapter?.title || 'No Chapter Selected'}</h3>
           {isOwner && (
-            <button 
+            <button
               onClick={saveChapter}
               className="flex items-center gap-2 bg-primary hover:bg-primary-hover text-white px-4 py-2 rounded-md font-semibold transition-colors shadow-sm"
             >
@@ -192,11 +192,11 @@ export function StudyEditor({ studyId }: { studyId: string }) {
           <div className="w-full max-w-[600px] aspect-square flex-shrink-0">
             <Chessboard options={chessboardOptions} />
           </div>
-          
+
           {/* PGN / Notation Panel */}
-          <div className="flex-1 bg-surface border border-surface-highlight rounded-lg p-4 h-full min-h-[300px] overflow-y-auto">
-            <h4 className="font-bold text-text-primary mb-2">Move List & Annotations</h4>
-            <div className="font-mono text-sm text-text-primary whitespace-pre-wrap bg-bg-page p-3 rounded-md">
+          <div className="flex-1 bg-cc-bg-card border border-cc-border-light rounded-lg p-4 h-full min-h-[300px] overflow-y-auto">
+            <h4 className="font-bold text-cc-text-primary mb-2">Move List & Annotations</h4>
+            <div className="font-mono text-sm text-cc-text-primary whitespace-pre-wrap bg-cc-bg-page p-3 rounded-md">
               {game.pgn() || 'No moves yet. Play moves on the board to start annotating!'}
             </div>
           </div>

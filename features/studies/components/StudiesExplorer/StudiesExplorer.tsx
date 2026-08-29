@@ -38,17 +38,17 @@ export function StudiesExplorer() {
   };
 
   if (loading) {
-    return <div className="text-center py-20 text-text-secondary">Loading studies...</div>;
+    return <div className="text-center py-20 text-cc-text-secondary">Loading studies...</div>;
   }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8 font-sans">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-text-primary mb-2">Interactive Studies</h1>
-          <p className="text-text-secondary">Explore community chess studies or create your own to analyze games.</p>
+          <h1 className="text-3xl font-bold text-cc-text-primary mb-2">Interactive Studies</h1>
+          <p className="text-cc-text-secondary">Explore community chess studies or create your own to analyze games.</p>
         </div>
-        <button 
+        <button
           onClick={handleCreateStudy}
           className="bg-primary hover:bg-primary-hover text-white px-6 py-3 rounded-xl font-bold transition-all shadow-md active:translate-y-1"
         >
@@ -61,13 +61,13 @@ export function StudiesExplorer() {
           <SectionHeader>My Studies</SectionHeader>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {myStudies.map(study => (
-              <Card 
-                key={study.id} 
-                className="p-4 cursor-pointer hover:border-primary transition-colors flex flex-col gap-2 bg-surface"
+              <Card
+                key={study.id}
+                className="p-4 cursor-pointer hover:border-primary transition-colors flex flex-col gap-2"
                 onClick={() => router.push(`/studies/${study.id}`)}
               >
-                <h3 className="font-bold text-text-primary text-lg">{study.title}</h3>
-                <div className="flex justify-between text-sm text-text-secondary">
+                <h3 className="font-bold text-cc-text-primary text-lg">{study.title}</h3>
+                <div className="flex justify-between text-sm text-cc-text-secondary">
                   <span>{study._count?.chapters || 0} Chapters</span>
                   <span>{study.createdAt ? new Date(study.createdAt).toLocaleDateString() : 'N/A'}</span>
                 </div>
@@ -81,13 +81,13 @@ export function StudiesExplorer() {
         <SectionHeader>Public Studies</SectionHeader>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {studies.map(study => (
-            <Card 
-              key={study.id} 
-              className="p-4 cursor-pointer hover:border-primary transition-colors flex flex-col gap-2 bg-surface"
+            <Card
+              key={study.id}
+              className="p-4 cursor-pointer hover:border-primary transition-colors flex flex-col gap-2"
               onClick={() => router.push(`/studies/${study.id}`)}
             >
-              <h3 className="font-bold text-text-primary text-lg">{study.title}</h3>
-              <div className="flex justify-between items-center text-sm text-text-secondary">
+              <h3 className="font-bold text-cc-text-primary text-lg">{study.title}</h3>
+              <div className="flex justify-between items-center text-sm text-cc-text-secondary">
                 <span className="font-medium text-primary">by {study.owner?.name || 'Unknown'} ({study.owner?.rating || '?'})</span>
                 <span>{study._count?.chapters || 0} Chapters</span>
               </div>

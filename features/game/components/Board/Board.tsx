@@ -7,6 +7,7 @@ import type { ChessboardOptions } from "react-chessboard";
 import type { BoardProps } from "./Board.types";
 import { DEFAULT_BOARD_SKIN } from "../../constants/boardTheme";
 import { Chess } from "chess.js";
+import { WoodGradientDefs } from "../WoodGradientDefs";
 
 const Board = memo(function Board({
   position,
@@ -191,20 +192,7 @@ const Board = memo(function Board({
         transformStyle: rotX === 0 && rotZ === 0 ? "flat" : "preserve-3d",
       } as React.CSSProperties}
     >
-      <svg className="absolute w-0 h-0 pointer-events-none" aria-hidden="true">
-        <defs>
-          <radialGradient id="lightWoodGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-            <stop offset="0%" stopColor="#fdf0e2" />
-            <stop offset="65%" stopColor="#e5c5aa" />
-            <stop offset="100%" stopColor="#bfa18a" />
-          </radialGradient>
-          <radialGradient id="darkWoodGrad" cx="50%" cy="50%" r="50%" fx="30%" fy="30%">
-            <stop offset="0%" stopColor="#5d554e" />
-            <stop offset="65%" stopColor="#3c342f" />
-            <stop offset="100%" stopColor="#1e1815" />
-          </radialGradient>
-        </defs>
-      </svg>
+      <WoodGradientDefs />
       <div className="absolute top-[0.6%] left-[7.5%] right-[7.5%] h-[3.5%] flex items-center justify-around text-[clamp(8px,1.8cqw,12px)] font-extrabold text-cc-text-primary drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] font-serif">
         {letters.map((l) => (
           <span key={l} className="text-center flex-1">{l}</span>

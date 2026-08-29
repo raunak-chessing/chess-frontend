@@ -66,7 +66,7 @@ export function GlobalChatWidget() {
       >
         <MessageSquare size={24} />
         {unread > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full border-2 border-surface">
+          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full border-2 border-cc-bg-card">
             {unread}
           </span>
         )}
@@ -76,15 +76,15 @@ export function GlobalChatWidget() {
 
   return (
     <div className={`fixed bottom-4 right-4 z-40 transition-all duration-300 ease-in-out ${isMinimized ? 'w-64 h-14' : 'w-80 h-96'}`}>
-      <Card className="w-full h-full flex flex-col shadow-2xl bg-surface border border-surface-highlight overflow-hidden">
+      <Card className="w-full h-full flex flex-col shadow-2xl border-cc-border-light overflow-hidden">
         {/* Header */}
-        <div 
-          className="px-4 py-3 bg-surface-highlight flex items-center justify-between cursor-pointer"
+        <div
+          className="px-4 py-3 bg-cc-bg-sidebar flex items-center justify-between cursor-pointer"
           onClick={() => setIsMinimized(!isMinimized)}
         >
           <div className="flex items-center gap-2">
             <MessageSquare size={16} className="text-primary" />
-            <h3 className="font-bold text-sm text-text-primary">Global Lobby</h3>
+            <h3 className="font-bold text-sm text-cc-text-primary">Global Lobby</h3>
             {isMinimized && unread > 0 && (
               <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                 {unread}
@@ -92,15 +92,15 @@ export function GlobalChatWidget() {
             )}
           </div>
           <div className="flex items-center gap-1">
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); setIsMinimized(!isMinimized); }}
-              className="p-1 hover:bg-surface rounded text-text-secondary hover:text-text-primary transition-colors"
+              className="p-1 hover:bg-cc-bg-hover rounded text-cc-text-secondary hover:text-cc-text-primary transition-colors"
             >
               {isMinimized ? <Maximize2 size={14} /> : <Minimize2 size={14} />}
             </button>
-            <button 
+            <button
               onClick={(e) => { e.stopPropagation(); setIsOpen(false); }}
-              className="p-1 hover:bg-surface rounded text-text-secondary hover:text-text-primary transition-colors"
+              className="p-1 hover:bg-cc-bg-hover rounded text-cc-text-secondary hover:text-cc-text-primary transition-colors"
             >
               <X size={16} />
             </button>
@@ -112,14 +112,14 @@ export function GlobalChatWidget() {
           <>
             <div className="flex-1 overflow-y-auto p-3 space-y-3 flex flex-col scrollbar-thin">
               {messages.length === 0 ? (
-                <div className="m-auto text-xs text-text-secondary text-center opacity-70">
+                <div className="m-auto text-xs text-cc-text-secondary text-center opacity-70">
                   Welcome to the global lobby!<br/>Say hello to everyone.
                 </div>
               ) : (
                 messages.map((msg) => (
                   <div key={msg.id} className="flex flex-col">
                     <span className="font-bold text-xs text-primary">{msg.sender}</span>
-                    <span className="text-sm text-text-primary break-words leading-snug">{msg.message}</span>
+                    <span className="text-sm text-cc-text-primary break-words leading-snug">{msg.message}</span>
                   </div>
                 ))
               )}
@@ -127,13 +127,13 @@ export function GlobalChatWidget() {
             </div>
 
             {/* Input */}
-            <form onSubmit={handleSend} className="p-3 border-t border-surface-highlight flex gap-2">
+            <form onSubmit={handleSend} className="p-3 border-t border-cc-border-light flex gap-2">
               <input
                 type="text"
                 placeholder="Message..."
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                className="flex-1 bg-surface-highlight text-sm text-text-primary px-3 py-2 rounded-lg border border-transparent focus:outline-none focus:border-primary transition-colors"
+                className="flex-1 bg-cc-bg-sidebar text-sm text-cc-text-primary px-3 py-2 rounded-lg border border-transparent focus:outline-none focus:border-primary transition-colors"
               />
               <button
                 type="submit"

@@ -123,7 +123,7 @@ const OnlineMatchmaker = memo(function OnlineMatchmaker({
         <div className="flex flex-col gap-4">
           {inQueue ? (
             <div className="flex flex-col gap-3.5 items-center justify-center p-4 bg-slate-950/40 rounded-xl border border-slate-900/60 relative overflow-hidden">
-              <span className="w-8 h-8 border-3 border-cc-green border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(129,182,76,0.2)]" />
+              <span className="w-8 h-8 border-3 border-cc-green border-t-transparent rounded-full animate-spin shadow-[0_0_15px_rgba(var(--cc-green-rgb),0.2)]" />
               <div className="flex flex-col items-center gap-1 text-center">
                 <span className="text-xs font-bold text-zinc-100 animate-pulse">
                   Searching for Opponent...

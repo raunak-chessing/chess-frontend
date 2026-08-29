@@ -42,9 +42,14 @@ export function ShopModal({ onClose }: ShopModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl bg-slate-900 border border-slate-700 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-800/50">
-          <h2 className="text-lg font-bold text-slate-100 flex items-center gap-2">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Shop"
+        className="w-full max-w-2xl bg-cc-bg-card border border-cc-border rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200"
+      >
+        <div className="p-4 border-b border-cc-border flex items-center justify-between bg-cc-bg-sidebar/50">
+          <h2 className="text-lg font-bold text-cc-text-primary flex items-center gap-2">
             <Store className="text-indigo-400" size={20} /> Shop
           </h2>
           <div className="flex items-center gap-4">
@@ -58,7 +63,11 @@ export function ShopModal({ onClose }: ShopModalProps) {
                 </span>
               </div>
             )}
-            <button onClick={onClose} className="p-1.5 text-slate-400 hover:text-white rounded-md hover:bg-slate-700 transition-colors">
+            <button
+              onClick={onClose}
+              aria-label="Close shop"
+              className="p-1.5 text-cc-text-muted hover:text-cc-text-primary rounded-md hover:bg-cc-bg-hover transition-colors"
+            >
               <X size={20} />
             </button>
           </div>
@@ -75,13 +84,13 @@ export function ShopModal({ onClose }: ShopModalProps) {
                 const owned = ownedShopItemIds.has(item.id);
                 const purchasing = purchasingId === item.id;
                 return (
-                  <div key={item.id} className="bg-slate-800/50 border border-slate-700 rounded-xl p-4 flex flex-col gap-2">
+                  <div key={item.id} className="bg-cc-bg-sidebar/50 border border-cc-border rounded-xl p-4 flex flex-col gap-2">
                     <div className="flex items-center justify-between">
-                      <span className="text-[10px] uppercase font-bold text-slate-500 tracking-wider">{item.type.replace('_', ' ')}</span>
+                      <span className="text-[10px] uppercase font-bold text-cc-text-muted tracking-wider">{item.type.replace('_', ' ')}</span>
                       <span className="text-[10px] uppercase font-bold text-indigo-400 tracking-wider">{item.rarity}</span>
                     </div>
-                    <span className="text-sm font-bold text-slate-100">{item.name}</span>
-                    <span className="text-xs text-slate-400 flex-1">{item.description}</span>
+                    <span className="text-sm font-bold text-cc-text-primary">{item.name}</span>
+                    <span className="text-xs text-cc-text-secondary flex-1">{item.description}</span>
                     {owned ? (
                       <div className="text-center text-xs font-bold text-emerald-400 py-1.5">Owned</div>
                     ) : (
@@ -108,7 +117,7 @@ export function ShopModal({ onClose }: ShopModalProps) {
               })}
             </div>
           ) : (
-            <div className="text-center py-8 text-slate-400">The shop is empty right now.</div>
+            <div className="text-center py-8 text-cc-text-secondary">The shop is empty right now.</div>
           )}
         </div>
       </div>

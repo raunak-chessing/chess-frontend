@@ -115,7 +115,7 @@ export function GameHeader({
       </div>
 
       {openingName && (
-        <div className="mb-4 text-xs font-serif font-bold text-cc-text-secondary tracking-widest uppercase bg-cc-bg-surface px-4 py-1.5 rounded-full border border-cc-border-light">
+        <div className="mb-4 text-xs font-serif font-bold text-cc-text-secondary tracking-widest uppercase bg-cc-bg-sidebar px-4 py-1.5 rounded-full border border-cc-border-light">
           {openingName}
         </div>
       )}

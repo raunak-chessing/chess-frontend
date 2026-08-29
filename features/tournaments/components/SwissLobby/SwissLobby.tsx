@@ -1,40 +1,21 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { SectionHeader } from '../../../../components/ui/SectionHeader';
-import { tournamentsApi, Tournament, TournamentPlayer, TournamentPairing } from '../../api/tournamentsApi';
+import { tournamentsApi, TournamentPairing, TournamentPlayer } from '../../api/tournamentsApi';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
+import { useTournamentDetails } from '../../hooks/useTournamentDetails';
 
 export function SwissLobby({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
-  const [tournament, setTournament] = useState<Tournament | null>(null);
+  const userId = session?.user?.id;
+  const { tournament, loading, isJoined, setIsJoined, refetch: fetchTournament } = useTournamentDetails(tournamentId, userId);
   const [pairings, setPairings] = useState<TournamentPairing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isJoined, setIsJoined] = useState(false);
 
   const currentRound = tournament?.rounds?.[0]?.roundNumber ?? 0;
-
-  const fetchTournament = useCallback(() => {
-    tournamentsApi.getTournamentDetails(tournamentId)
-      .then((data) => {
-        setTournament(data);
-        if (session?.user && data.players) {
-          const joined = data.players.some((p: TournamentPlayer) => p.user?.id === session.user.id) ?? false;
-          setIsJoined(joined);
-        }
-      })
-      .catch(() => toast.error('Failed to load tournament'))
-      .finally(() => setLoading(false));
-  }, [tournamentId, session]);
-
-  useEffect(() => {
-    fetchTournament();
-    const interval = setInterval(fetchTournament, 5000);
-    return () => clearInterval(interval);
-  }, [fetchTournament]);
 
   useEffect(() => {
     if (currentRound < 1) {
@@ -70,39 +51,39 @@ export function SwissLobby({ tournamentId }: { tournamentId: string }) {
 
   return (
     <div className="max-w-5xl mx-auto p-4 flex flex-col md:flex-row gap-6">
-      <div className="w-full md:w-80 bg-surface border border-surface-highlight rounded-lg flex flex-col overflow-hidden h-[calc(100vh-8rem)]">
-        <div className="bg-surface-highlight p-4 border-b border-surface">
-          <h2 className="font-bold text-lg text-text-primary">Standings</h2>
+      <div className="w-full md:w-80 bg-cc-bg-card border border-cc-border-light rounded-lg flex flex-col overflow-hidden h-[calc(100vh-8rem)]">
+        <div className="bg-cc-bg-sidebar p-4 border-b border-cc-border">
+          <h2 className="font-bold text-lg text-cc-text-primary">Standings</h2>
         </div>
         <div className="flex-1 overflow-y-auto">
           {tournament.players?.map((player: TournamentPlayer, idx: number) => (
-            <div key={player.id} className={`flex items-center justify-between p-3 border-b border-surface-highlight ${player.user.id === session?.user?.id ? 'bg-bg-hover' : ''}`}>
+            <div key={player.id} className={`flex items-center justify-between p-3 border-b border-cc-border-light ${player.user.id === session?.user?.id ? 'bg-cc-bg-hover' : ''}`}>
               <div className="flex items-center gap-3">
-                <span className="font-bold text-text-secondary w-5 text-right">
+                <span className="font-bold text-cc-text-secondary w-5 text-right">
                   {player.rank ?? idx + 1}
                 </span>
                 <div>
-                  <div className="font-semibold text-text-primary text-sm">{player.user.name}</div>
-                  <div className="text-xs text-text-secondary">{player.user.rating}</div>
+                  <div className="font-semibold text-cc-text-primary text-sm">{player.user.name}</div>
+                  <div className="text-xs text-cc-text-secondary">{player.user.rating}</div>
                 </div>
               </div>
               <span className="font-bold text-primary">{player.score}</span>
             </div>
           ))}
           {(!tournament.players || tournament.players.length === 0) && (
-            <div className="p-4 text-center text-sm text-text-secondary">No players yet.</div>
+            <div className="p-4 text-center text-sm text-cc-text-secondary">No players yet.</div>
           )}
         </div>
       </div>
 
       <div className="flex-1 flex flex-col gap-6">
-        <div className="bg-surface border border-surface-highlight rounded-lg p-8 text-center flex flex-col items-center justify-center">
+        <div className="bg-cc-bg-card border border-cc-border-light rounded-lg p-8 text-center flex flex-col items-center justify-center">
           <div className="text-4xl mb-4">♟️</div>
-          <h1 className="text-2xl font-black font-serif text-text-primary">{tournament.name}</h1>
-          <div className="text-lg text-text-secondary mb-2">
+          <h1 className="text-2xl font-black font-serif text-cc-text-primary">{tournament.name}</h1>
+          <div className="text-lg text-cc-text-secondary mb-2">
             {tournament.timeControl} Swiss • {tournament.status}
           </div>
-          <div className="text-sm text-text-secondary mb-8">
+          <div className="text-sm text-cc-text-secondary mb-8">
             Round {currentRound || '-'} of {tournament.maxRounds ?? '?'}
           </div>
 
@@ -116,13 +97,13 @@ export function SwissLobby({ tournamentId }: { tournamentId: string }) {
           )}
 
           {tournament.status === 'UPCOMING' && isJoined && (
-            <div className="px-6 py-3 bg-surface-highlight text-text-secondary rounded-lg font-semibold">
+            <div className="px-6 py-3 bg-cc-bg-sidebar text-cc-text-secondary rounded-lg font-semibold">
               Waiting for the tournament to start...
             </div>
           )}
 
           {tournament.status === 'IN_PROGRESS' && myPairing?.isBye && (
-            <div className="px-6 py-3 bg-surface-highlight text-text-secondary rounded-lg font-semibold">
+            <div className="px-6 py-3 bg-cc-bg-sidebar text-cc-text-secondary rounded-lg font-semibold">
               You have a bye this round.
             </div>
           )}
@@ -137,39 +118,39 @@ export function SwissLobby({ tournamentId }: { tournamentId: string }) {
           )}
 
           {tournament.status === 'IN_PROGRESS' && !myPairing && (
-            <div className="px-6 py-3 bg-surface-highlight text-text-secondary rounded-lg font-semibold">
+            <div className="px-6 py-3 bg-cc-bg-sidebar text-cc-text-secondary rounded-lg font-semibold">
               Waiting for the next round's pairings...
             </div>
           )}
 
           {tournament.status === 'COMPLETED' && (
-            <div className="px-6 py-3 bg-surface-highlight text-text-secondary rounded-lg font-semibold">
+            <div className="px-6 py-3 bg-cc-bg-sidebar text-cc-text-secondary rounded-lg font-semibold">
               Tournament complete. Final standings on the left.
             </div>
           )}
         </div>
 
-        <div className="bg-surface border border-surface-highlight rounded-lg p-6">
-          <h3 className="font-bold text-lg text-text-primary mb-3">Round {currentRound || '-'} Pairings</h3>
+        <div className="bg-cc-bg-card border border-cc-border-light rounded-lg p-6">
+          <h3 className="font-bold text-lg text-cc-text-primary mb-3">Round {currentRound || '-'} Pairings</h3>
           <div className="flex flex-col gap-2">
             {pairings.map((p) => (
-              <div key={p.id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-surface-highlight/50">
-                <span className="font-semibold text-text-primary">{p.whitePlayer.name}</span>
-                <span className="text-text-secondary text-xs">
+              <div key={p.id} className="flex items-center justify-between text-sm p-2 rounded-lg bg-cc-bg-sidebar/50">
+                <span className="font-semibold text-cc-text-primary">{p.whitePlayer.name}</span>
+                <span className="text-cc-text-secondary text-xs">
                   {p.isBye ? 'BYE' : p.result ? p.result : 'vs'}
                 </span>
-                <span className="font-semibold text-text-primary">{p.blackPlayer?.name ?? '-'}</span>
+                <span className="font-semibold text-cc-text-primary">{p.blackPlayer?.name ?? '-'}</span>
               </div>
             ))}
             {pairings.length === 0 && (
-              <div className="text-center text-sm text-text-secondary py-4">No pairings yet.</div>
+              <div className="text-center text-sm text-cc-text-secondary py-4">No pairings yet.</div>
             )}
           </div>
         </div>
 
-        <div className="bg-surface border border-surface-highlight rounded-lg p-6">
-          <h3 className="font-bold text-lg text-text-primary mb-3">Swiss Rules</h3>
-          <ul className="list-disc pl-5 space-y-2 text-text-secondary text-sm">
+        <div className="bg-cc-bg-card border border-cc-border-light rounded-lg p-6">
+          <h3 className="font-bold text-lg text-cc-text-primary mb-3">Swiss Rules</h3>
+          <ul className="list-disc pl-5 space-y-2 text-cc-text-secondary text-sm">
             <li>Win: 2 points, Draw: 1 point, Loss: 0 points.</li>
             <li>Win Streak: Winning 2 or more games in a row starts a streak.</li>
             <li>Streak Bonus: While on a streak, wins are worth 4 points!</li>

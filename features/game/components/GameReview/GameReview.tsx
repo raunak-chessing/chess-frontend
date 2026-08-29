@@ -86,10 +86,10 @@ export function GameReview({ pgn, whitePlayerName, blackPlayerName }: GameReview
   });
 
   return (
-    <div className="flex flex-col h-full bg-cc-bg-base border-l border-cc-border overflow-y-auto">
-      <div className="p-4 bg-cc-bg-surface border-b border-cc-border flex items-center justify-between">
+    <div className="flex flex-col h-full bg-cc-bg-page border-l border-cc-border overflow-y-auto">
+      <div className="p-4 bg-cc-bg-sidebar border-b border-cc-border flex items-center justify-between">
         <h2 className="text-lg font-black font-serif text-cc-text-primary flex items-center gap-2">
-          <BrainCircuit className="w-5 h-5 text-cc-accent-green" /> Game Review
+          <BrainCircuit className="w-5 h-5 text-cc-green" /> Game Review
         </h2>
       </div>
 
@@ -110,7 +110,7 @@ export function GameReview({ pgn, whitePlayerName, blackPlayerName }: GameReview
         {analysis.narrative && (
           <div className="bg-cc-bg-card border border-cc-border rounded-xl p-4">
             <h3 className="text-xs font-bold uppercase text-cc-text-secondary mb-3 flex items-center gap-1">
-              <BrainCircuit className="w-3 h-3 text-cc-accent-purple" /> The Seer's Tale
+              <BrainCircuit className="w-3 h-3 text-purple-400" /> The Seer's Tale
             </h3>
             <p className="text-sm leading-relaxed text-cc-text-primary/90 italic font-serif">
               {analysis.narrative}
@@ -135,12 +135,12 @@ export function GameReview({ pgn, whitePlayerName, blackPlayerName }: GameReview
               </defs>
               <XAxis dataKey="moveNum" hide />
               <YAxis domain={[-10, 10]} hide />
-              <Tooltip 
-                contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                labelStyle={{ color: '#888' }}
+              <Tooltip
+                contentStyle={{ backgroundColor: 'var(--cc-bg-sidebar)', border: '1px solid var(--cc-border)' }}
+                labelStyle={{ color: 'var(--cc-text-muted)' }}
               />
-              <ReferenceLine y={0} stroke="#333" strokeDasharray="3 3" />
-              <Area type="monotone" dataKey="eval" stroke="#666" fill="url(#colorEval)" />
+              <ReferenceLine y={0} stroke="var(--cc-border)" strokeDasharray="3 3" />
+              <Area type="monotone" dataKey="eval" stroke="var(--cc-text-muted)" fill="url(#colorEval)" />
             </AreaChart>
           </ResponsiveContainer>
         </div>
@@ -166,7 +166,7 @@ export function GameReview({ pgn, whitePlayerName, blackPlayerName }: GameReview
               else if (m.classification === 'Great') { badgeColor = "bg-blue-500 text-white"; icon = "!"; }
 
               return (
-                <div key={i} className="flex flex-col p-3 rounded-lg bg-cc-bg-surface hover:bg-cc-border transition-colors gap-2">
+                <div key={i} className="flex flex-col p-3 rounded-lg bg-cc-bg-sidebar hover:bg-cc-border transition-colors gap-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <span className="text-cc-text-muted text-sm w-6">{moveNum}.{isWhite ? '' : '..'}</span>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Card } from "@/components/ui/Card";
@@ -9,37 +9,16 @@ import { Spinner } from "@/components/ui/Spinner";
 import { formatDistanceToNow } from "date-fns";
 import { getSocket } from "@/lib/socket-client";
 import { GameView } from "@/features/game";
-import { tournamentsApi, Tournament, TournamentPlayer } from "../api/tournamentsApi";
+import { tournamentsApi, TournamentPlayer } from "../api/tournamentsApi";
+import { useTournamentDetails } from "../hooks/useTournamentDetails";
 
 export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
-  
-  const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [isJoined, setIsJoined] = useState(false);
+
+  const { tournament, loading, isJoined, refetch: fetchTournament } = useTournamentDetails(tournamentId, userId);
   const [playingMatch, setPlayingMatch] = useState(false);
-
-  const fetchTournament = useCallback(async () => {
-    try {
-      const data = await tournamentsApi.getTournamentDetails(tournamentId);
-      setTournament(data);
-      if (userId) {
-        setIsJoined(data.players?.some((p: TournamentPlayer) => p.userId === userId) ?? false);
-      }
-      setLoading(false);
-    } catch (e) {
-      console.error(e);
-      setLoading(false);
-    }
-  }, [tournamentId, userId]);
-
-  useEffect(() => {
-    fetchTournament();
-    const int = setInterval(fetchTournament, 5000); // Polling for leaderboard updates for now
-    return () => clearInterval(int);
-  }, [fetchTournament]);
 
   useEffect(() => {
     const socket = getSocket();
@@ -144,7 +123,7 @@ export function TournamentLobby({ tournamentId }: { tournamentId: string }) {
             {isJoined && tournament.status === 'IN_PROGRESS' && (
               <button 
                 onClick={handlePlay}
-                className="bg-cc-green hover:bg-cc-green/90 text-zinc-950 font-bold px-8 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(129,182,76,0.3)] hover:shadow-[0_0_30px_rgba(129,182,76,0.5)] hover:-translate-y-1"
+                className="bg-cc-green hover:bg-cc-green/90 text-zinc-950 font-bold px-8 py-3 rounded-xl transition-all shadow-[0_0_20px_rgba(var(--cc-green-rgb),0.3)] hover:shadow-[0_0_30px_rgba(var(--cc-green-rgb),0.5)] hover:-translate-y-1"
               >
                 Play Match (Join Queue)
               </button>

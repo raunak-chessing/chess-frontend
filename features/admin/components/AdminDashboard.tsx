@@ -84,11 +84,11 @@ export function AdminDashboard() {
     <div className="max-w-4xl mx-auto p-6 space-y-8 font-sans">
       <div>
         <h1 className="text-3xl font-bold text-red-500 mb-2">Admin Dashboard</h1>
-        <p className="text-text-secondary">Manage users, chat, and matchmaking.</p>
+        <p className="text-cc-text-secondary">Manage users, chat, and matchmaking.</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="p-6 bg-surface">
+        <Card className="p-6">
           <SectionHeader>Flag Cheater</SectionHeader>
           <div className="space-y-4">
             <input
@@ -96,7 +96,7 @@ export function AdminDashboard() {
               placeholder="Enter User ID"
               value={flagUser}
               onChange={(e) => setFlagUser(e.target.value)}
-              className="w-full bg-surface-highlight text-text-primary px-4 py-2 rounded-lg border border-transparent focus:border-primary transition-colors"
+              className="w-full bg-cc-bg-sidebar text-cc-text-primary px-4 py-2 rounded-lg border border-transparent focus:border-primary transition-colors"
             />
             <button
               onClick={handleFlagUser}
@@ -108,7 +108,7 @@ export function AdminDashboard() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-surface">
+        <Card className="p-6">
           <SectionHeader>Delete Toxic Message</SectionHeader>
           <div className="space-y-4">
             <input
@@ -116,7 +116,7 @@ export function AdminDashboard() {
               placeholder="Enter Message ID"
               value={chatId}
               onChange={(e) => setChatId(e.target.value)}
-              className="w-full bg-surface-highlight text-text-primary px-4 py-2 rounded-lg border border-transparent focus:border-primary transition-colors"
+              className="w-full bg-cc-bg-sidebar text-cc-text-primary px-4 py-2 rounded-lg border border-transparent focus:border-primary transition-colors"
             />
             <button
               onClick={handleDeleteChat}
@@ -128,9 +128,9 @@ export function AdminDashboard() {
           </div>
         </Card>
 
-        <Card className="p-6 bg-surface md:col-span-2 flex flex-col items-center justify-center">
+        <Card className="p-6 md:col-span-2 flex flex-col items-center justify-center">
           <SectionHeader>Matchmaking Control</SectionHeader>
-          <p className="text-text-secondary mb-4 text-center">
+          <p className="text-cc-text-secondary mb-4 text-center">
             {paused ? "Matchmaking is currently paused." : "Pause the matchmaking queue globally for maintenance."}
           </p>
           <button

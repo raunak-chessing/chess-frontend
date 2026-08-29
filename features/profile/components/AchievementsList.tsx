@@ -58,7 +58,7 @@ export function AchievementsList({ userId }: AchievementsListProps) {
               key={badge.id}
               className={`flex flex-col items-center text-center p-4 rounded-2xl border transition-all ${
                 isUnlocked 
-                  ? "bg-cc-bg-surface border-cc-accent-green/30 shadow-[0_0_15px_rgba(20,184,106,0.1)]" 
+                  ? "bg-cc-green/10 border-cc-green/30 shadow-[0_0_15px_rgba(var(--cc-green-rgb),0.15)]"
                   : "bg-cc-bg-sidebar border-cc-border opacity-50 grayscale hover:grayscale-0 hover:opacity-100"
               }`}
             >

@@ -52,7 +52,7 @@ export default function PremiumPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             {features.map((f, i) => (
               <div key={i} className="flex gap-4 items-start">
-                <div className="p-2 rounded-xl bg-cc-bg-surface border border-cc-border">
+                <div className="p-2 rounded-xl bg-cc-bg-sidebar border border-cc-border">
                   {f.icon}
                 </div>
                 <div>

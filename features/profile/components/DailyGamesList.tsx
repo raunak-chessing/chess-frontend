@@ -40,14 +40,23 @@ export const DailyGamesList = memo(function DailyGamesList({ games, userId }: Da
           return (
             <div
               key={game.id}
+              role="button"
+              tabIndex={0}
+              aria-label={`Continue game against ${opponent?.name ?? "opponent"}`}
               onClick={() => router.push(`/play/${game.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  router.push(`/play/${game.id}`);
+                }
+              }}
               className="flex items-center justify-between p-3.5 bg-cc-bg-sidebar/60 border border-cc-border-light/50 rounded-xl hover:bg-cc-bg-hover transition-all cursor-pointer hover:-translate-y-0.5 shadow-sm"
             >
               {/* Left: Status & Timing */}
               <div className="flex items-center gap-3">
                 <span
                   className={`w-2.5 h-2.5 rounded-full ${
-                    isMyTurn ? "bg-cc-green shadow-[0_0_8px_rgba(129,182,76,0.8)] animate-pulse" : "bg-cc-text-muted"
+                    isMyTurn ? "bg-cc-green shadow-[0_0_8px_rgba(var(--cc-green-rgb),0.8)] animate-pulse" : "bg-cc-text-muted"
                   }`}
                 />
                 <div className="flex flex-col gap-0.5">

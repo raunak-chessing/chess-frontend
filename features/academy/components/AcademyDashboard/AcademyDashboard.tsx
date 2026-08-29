@@ -9,6 +9,9 @@ interface AcademyDashboardProps {
   onSelectExplorer: () => void;
 }
 
+// Colors below intentionally mirror --cc-green/--cc-accent-gold by literal
+// value (not var() reference) — they're alpha-suffixed inline further down
+// (e.g. `${tab.color}40`), which only works against a raw hex string.
 const LEVEL_TABS = [
   {
     id: "beginner",
@@ -23,7 +26,7 @@ const LEVEL_TABS = [
     name: "Intermediate",
     elo: "600 – 1200",
     icon: "⚔",
-    color: "#e5a93d",
+    color: "#e8a93e",
     desc: "Build your tactical arsenal: forks, pins, skewers, discovered attacks, sacrifices, and essential checkmate patterns.",
   },
   {
@@ -147,7 +150,7 @@ export const AcademyDashboard = memo(function AcademyDashboard({
           <div className="w-full h-3.5 bg-cc-bg-sidebar/80 rounded-full border border-cc-border-light/30 overflow-hidden relative">
             <div
               style={{ width: `${progressPercent}%` }}
-              className="h-full bg-cc-green shadow-[0_0_12px_rgba(129,182,76,0.35)] transition-all duration-700 rounded-full"
+              className="h-full bg-cc-green shadow-[0_0_12px_rgba(var(--cc-green-rgb),0.35)] transition-all duration-700 rounded-full"
             />
             {progressPercent > 5 && (
               <span
@@ -271,7 +274,16 @@ export const AcademyDashboard = memo(function AcademyDashboard({
                   return (
                     <div
                       key={lesson.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`${isDone ? "Replay" : "Start"} lesson: ${lesson.title}`}
                       onClick={() => onSelectLesson(lesson.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          onSelectLesson(lesson.id);
+                        }
+                      }}
                       className={`group p-4 rounded-2xl border flex items-center justify-between gap-4 transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 cursor-pointer text-left ${
                         isDone
                           ? "bg-emerald-900/10 border-emerald-900/30 hover:border-emerald-700/50 shadow-sm"

@@ -46,7 +46,7 @@ export function LeagueDivisions() {
 
   return (
     <div className="bg-cc-bg-card rounded-3xl border border-cc-border shadow-2xl overflow-hidden flex flex-col h-full">
-      <div className="bg-cc-bg-surface p-6 border-b border-cc-border flex justify-between items-center">
+      <div className="bg-cc-bg-sidebar p-6 border-b border-cc-border flex justify-between items-center">
         <h2 className="text-xl font-serif font-extrabold text-cc-text-primary flex items-center gap-3">
           <Shield className="w-6 h-6 text-indigo-500" />
           {activeDivision.tier} League

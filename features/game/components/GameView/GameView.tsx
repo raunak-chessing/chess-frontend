@@ -607,7 +607,7 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
               className={`h-14 px-4 rounded-xl font-bold flex items-center justify-center transition-colors shadow-sm ${
                 isListening 
                   ? "bg-red-500 hover:bg-red-600 text-white animate-pulse" 
-                  : "bg-cc-bg-surface hover:bg-cc-bg-hover text-cc-text-secondary border border-cc-border"
+                  : "bg-cc-bg-sidebar hover:bg-cc-bg-hover text-cc-text-secondary border border-cc-border"
               }`}
               title="Voice Control"
             >
