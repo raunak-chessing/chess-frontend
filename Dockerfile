@@ -20,6 +20,10 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
 ENV NEXT_PUBLIC_GAMESERVER_URL=$NEXT_PUBLIC_GAMESERVER_URL
 ENV NEXT_PUBLIC_SENTRY_DSN=$NEXT_PUBLIC_SENTRY_DSN
 
+# See chessbackend/Dockerfile for why this is needed — V8's default heap
+# ceiling is based on physical RAM alone, not physical+swap, and Next.js's
+# build is typically even more memory-hungry than a NestJS tsc build.
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN pnpm run build
 
 FROM base AS runtime
