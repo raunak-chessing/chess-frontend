@@ -1,69 +1,61 @@
-import type { GameMode } from "../../types/game.types";
+"use client";
 
-interface PlayOptionsProps {
-  onSelectMode: (mode: GameMode) => void;
-}
+import { Zap, Cpu, Users, Puzzle, Swords, Skull, Radio } from "lucide-react";
+import { OptionCardGrid, type OptionCardItem } from "@/components/features/OptionCardGrid";
 
-export default function PlayOptions({ onSelectMode }: PlayOptionsProps) {
-  return (
-    <div className="flex flex-col gap-3 w-full max-w-[380px] mt-4">
-      <button
-        onClick={() => onSelectMode("online")}
-        className="w-full flex items-center justify-start gap-4 px-6 py-4 rounded-xl bg-cc-green hover:bg-cc-green-hover transition-all cursor-pointer shadow-lg hover:-translate-y-0.5 active:translate-y-0 text-white"
-      >
-        <span className="text-3xl">⚡</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-lg font-bold leading-tight">Play Online</span>
-          <span className="text-xs opacity-90 font-medium">
-            Play vs someone at your level
-          </span>
-        </div>
-      </button>
+const MODES: OptionCardItem[] = [
+  {
+    href: "/play/online",
+    Icon: Zap,
+    title: "Play Online",
+    description: "Play vs someone at your level",
+    primary: true,
+  },
+  {
+    href: "/play/computer",
+    Icon: Cpu,
+    title: "Play with Computer",
+    description: "Play vs customizable training bots",
+    accent: "blue",
+  },
+  {
+    href: "/play/local",
+    Icon: Users,
+    title: "Play with a Friend",
+    description: "Play local PvP matches on one board",
+    accent: "green",
+  },
+  {
+    href: "/play/puzzles",
+    Icon: Puzzle,
+    title: "Puzzle Rush",
+    description: "Solve puzzles under a 3-minute timer",
+    accent: "purple",
+  },
+  {
+    href: "/play/battle",
+    Icon: Swords,
+    title: "Puzzle Battle",
+    description: "Race an opponent — same puzzle, first to solve wins",
+    accent: "amber",
+    badge: "NEW",
+  },
+  {
+    href: "/play/boss",
+    Icon: Skull,
+    title: "Boss Fight",
+    description: "Team up with your faction to take down a world boss",
+    accent: "red",
+  },
+  {
+    href: "/play/streamer",
+    Icon: Radio,
+    title: "Streamer Mode",
+    description: "Spectator-voted chess — the crowd picks the move",
+    accent: "pink",
+  },
+];
 
-      <button
-        onClick={() => onSelectMode("computer-black")}
-        className="w-full flex items-center justify-start gap-4 px-6 py-4 rounded-xl bg-cc-bg-card hover:bg-cc-bg-hover border border-cc-border transition-all cursor-pointer shadow-lg hover:-translate-y-0.5 active:translate-y-0 text-cc-text-primary"
-      >
-        <span className="text-3xl">💻</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-lg font-bold leading-tight">
-            Play with Computer
-          </span>
-          <span className="text-xs text-cc-text-secondary font-medium">
-            Play vs customizable training bots
-          </span>
-        </div>
-      </button>
-
-      <button
-        onClick={() => onSelectMode("pvp")}
-        className="w-full flex items-center justify-start gap-4 px-6 py-4 rounded-xl bg-cc-bg-card hover:bg-cc-bg-hover border border-cc-border transition-all cursor-pointer shadow-lg hover:-translate-y-0.5 active:translate-y-0 text-cc-text-primary"
-      >
-        <span className="text-3xl">👥</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-lg font-bold leading-tight">
-            Play with a Friend
-          </span>
-          <span className="text-xs text-cc-text-secondary font-medium">
-            Play local PvP matches on one board
-          </span>
-        </div>
-      </button>
-
-      <button
-        onClick={() => onSelectMode("puzzle-rush")}
-        className="w-full flex items-center justify-start gap-4 px-6 py-4 rounded-xl bg-cc-bg-card hover:bg-cc-bg-hover border border-cc-border transition-all cursor-pointer shadow-lg hover:-translate-y-0.5 active:translate-y-0 text-cc-text-primary"
-      >
-        <span className="text-3xl">🧩</span>
-        <div className="flex flex-col items-start text-left">
-          <span className="text-lg font-bold leading-tight">
-            Puzzle Rush
-          </span>
-          <span className="text-xs text-cc-text-secondary font-medium">
-            Solve puzzles under a 3-minute timer
-          </span>
-        </div>
-      </button>
-    </div>
-  );
+export default function PlayOptions() {
+  return <OptionCardGrid items={MODES} variant="row" className="w-full max-w-105 mt-4" />;
 }

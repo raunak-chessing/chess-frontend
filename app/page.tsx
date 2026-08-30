@@ -1,16 +1,50 @@
 "use client";
 
 import React from "react";
+import { Zap, Puzzle, Trophy, GraduationCap } from "lucide-react";
 import Chessboard from "../components/Chessboard";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { QuestWidget } from "@/features/quests/components/QuestWidget";
 import { FactionMap } from "@/features/factions/components/FactionMap";
+import { Aurora, FadeContent } from "@/components/react-bits";
+import { OptionCardGrid, type OptionCardItem } from "@/components/features/OptionCardGrid";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 
 gsap.registerPlugin(useGSAP, ScrollTrigger);
+
+const GUEST_HIGHLIGHTS: OptionCardItem[] = [
+  {
+    href: "/play",
+    Icon: Zap,
+    title: "Play Any Way You Like",
+    description: "Ranked online matches, local PvP, or customizable training bots.",
+    accent: "green",
+  },
+  {
+    href: "/puzzles",
+    Icon: Puzzle,
+    title: "Sharpen Your Tactics",
+    description: "An endless puzzle database that adapts to your rating.",
+    accent: "amber",
+  },
+  {
+    href: "/tournaments",
+    Icon: Trophy,
+    title: "Compete in Tournaments",
+    description: "Swiss and arena tournaments running around the clock.",
+    accent: "purple",
+  },
+  {
+    href: "/learn",
+    Icon: GraduationCap,
+    title: "Chess Academy",
+    description: "Structured lessons on openings, tactics, and strategy.",
+    accent: "blue",
+  },
+];
 
 const GAME_MODES = [
   {
@@ -68,6 +102,11 @@ export default function Home() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const container = React.useRef<HTMLDivElement>(null);
+  const [showAurora, setShowAurora] = React.useState(false);
+
+  React.useEffect(() => {
+    setShowAurora(!window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  }, []);
 
   useGSAP(
     () => {
@@ -180,9 +219,15 @@ export default function Home() {
   return (
     <div
       ref={container}
-      className="flex-1 w-full flex flex-col font-sans bg-[var(--cc-bg-page)] text-[var(--cc-text-primary)]"
+      className="relative flex-1 w-full flex flex-col overflow-x-hidden font-sans bg-[var(--cc-bg-page)] text-[var(--cc-text-primary)]"
     >
-      <div className="flex-grow flex items-center justify-center p-4 md:p-8">
+      {showAurora && (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-140 opacity-30 mix-blend-screen">
+          <Aurora colorStops={["#81b64c", "#e8a93e", "#81b64c"]} amplitude={0.8} blend={0.6} speed={0.6} />
+        </div>
+      )}
+
+      <div className="relative flex-grow flex items-center justify-center p-4 md:p-8">
         <div className="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-12 gap-8 md:gap-12 items-center">
 
           <div className="lg:col-span-6 xl:col-span-7 flex justify-center items-center">
@@ -257,6 +302,39 @@ export default function Home() {
           )}
         </div>
       </div>
+
+      {!session && (
+        <FadeContent
+          blur
+          duration={800}
+          threshold={0.15}
+          className="relative w-full flex flex-col items-center gap-10 border-t border-[var(--cc-border)] px-4 py-16 md:py-20"
+        >
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h2 className="text-2xl md:text-3xl font-black tracking-tight">Everything a chess player needs</h2>
+            <p className="max-w-md text-sm text-[var(--cc-text-secondary)]">
+              One home for ranked games, tactics training, tournaments, and structured lessons.
+            </p>
+          </div>
+
+          <OptionCardGrid items={GUEST_HIGHLIGHTS} variant="tile" className="w-full max-w-4xl" />
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => router.push("/signup")}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer shadow-md hover:-translate-y-0.5 active:translate-y-0 bg-[var(--cc-green)] hover:bg-[var(--cc-green-hover)] text-white"
+            >
+              Create Free Account
+            </button>
+            <button
+              onClick={() => router.push("/login")}
+              className="px-5 py-2.5 rounded-xl text-sm font-bold transition-all cursor-pointer border bg-transparent hover:bg-[var(--cc-bg-hover)] border-[var(--cc-border)] hover:border-[var(--cc-border-light)] text-[var(--cc-text-primary)]"
+            >
+              Log In
+            </button>
+          </div>
+        </FadeContent>
+      )}
     </div>
   );
 }
