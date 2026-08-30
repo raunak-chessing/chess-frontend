@@ -2,20 +2,24 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Users, Package, Store, Coins, Sparkles } from 'lucide-react';
+import { Home, Zap, Puzzle, Trophy, BookOpen, GraduationCap, Users, Package, Store, Coins, Sparkles } from "lucide-react";
 import { useSocialStore } from "@/features/social/store/socialStore";
 import { InventoryModal } from "@/features/inventory/components";
 import { ShopModal } from "@/features/shop/components/ShopModal/ShopModal";
 import { inventoryApi } from "@/features/inventory/api/inventoryApi";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
+import { gsap } from "gsap";
+import { useGSAP } from "@gsap/react";
+
+gsap.registerPlugin(useGSAP);
 
 const NAV_LINKS = [
-  { href: "/", label: "Home", icon: "🏠" },
-  { href: "/play", label: "Play", icon: "⚡" },
-  { href: "/puzzles", label: "Puzzles", icon: "🧩" },
-  { href: "/tournaments", label: "Tournaments", icon: "🏆" },
-  { href: "/studies", label: "Studies", icon: "📚" },
-  { href: "/learn", label: "Learn", icon: "📖" },
+  { href: "/", label: "Home", Icon: Home },
+  { href: "/play", label: "Play", Icon: Zap },
+  { href: "/puzzles", label: "Puzzles", Icon: Puzzle },
+  { href: "/tournaments", label: "Tournaments", Icon: Trophy },
+  { href: "/studies", label: "Studies", Icon: BookOpen },
+  { href: "/learn", label: "Learn", Icon: GraduationCap },
 ] as const;
 
 function isExactActiveLink(pathname: string, href: string): boolean {
@@ -33,6 +37,10 @@ export default function Navbar() {
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [wallet, setWallet] = useState<{ gold: number; aetherium: number } | null>(null);
 
+  const linksContainerRef = useRef<HTMLDivElement>(null);
+  const linkRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+  const indicatorRef = useRef<HTMLSpanElement>(null);
+
   const refreshWallet = useCallback(() => {
     if (!session) return;
     inventoryApi.getMyInventory()
@@ -43,6 +51,37 @@ export default function Navbar() {
   useEffect(() => {
     refreshWallet();
   }, [refreshWallet]);
+
+  const activeHref = NAV_LINKS.find((link) => isExactActiveLink(pathname, link.href))?.href;
+
+  // Slides a pill behind the active link instead of an instant background
+  // swap. Falls back to an instant jump under prefers-reduced-motion.
+  useGSAP(
+    () => {
+      const indicator = indicatorRef.current;
+      const activeEl = activeHref ? linkRefs.current[activeHref] : null;
+      if (!indicator) return;
+
+      if (!activeEl) {
+        gsap.set(indicator, { opacity: 0 });
+        return;
+      }
+
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      const target = {
+        x: activeEl.offsetLeft,
+        width: activeEl.offsetWidth,
+        opacity: 1,
+      };
+
+      if (prefersReducedMotion) {
+        gsap.set(indicator, target);
+      } else {
+        gsap.to(indicator, { ...target, duration: 0.35, ease: "power3.out" });
+      }
+    },
+    { dependencies: [activeHref], scope: linksContainerRef },
+  );
 
   return (
     <nav className="sticky top-0 z-50 w-full flex items-center justify-between px-4 md:px-6 h-14 border-b bg-[var(--cc-bg-card)] border-[var(--cc-border)]">
@@ -60,20 +99,29 @@ export default function Navbar() {
           </span>
         </button>
 
-        <div className="flex items-center gap-1">
-          {NAV_LINKS.map((link) => {
-            const active = isExactActiveLink(pathname, link.href);
+        <div ref={linksContainerRef} className="relative flex items-center gap-1">
+          <span
+            ref={indicatorRef}
+            className="absolute left-0 top-0 h-full rounded-md bg-[var(--cc-bg-hover)] opacity-0"
+            style={{ willChange: "transform, width, opacity" }}
+            aria-hidden="true"
+          />
+          {NAV_LINKS.map(({ href, label, Icon }) => {
+            const active = isExactActiveLink(pathname, href);
             return (
               <button
-                key={link.href}
-                onClick={() => router.push(link.href)}
-                className={`px-3 py-1.5 rounded-md text-sm font-semibold transition-all cursor-pointer flex items-center gap-1.5 hover:bg-[var(--cc-bg-hover)] ${
-                  active ? "bg-[var(--cc-bg-hover)] text-[var(--cc-green)]" : "bg-transparent text-[var(--cc-text-secondary)]"
+                key={href}
+                ref={(el) => {
+                  linkRefs.current[href] = el;
+                }}
+                onClick={() => router.push(href)}
+                className={`relative px-3 py-1.5 rounded-md text-sm font-semibold transition-colors cursor-pointer flex items-center gap-1.5 ${
+                  active ? "text-[var(--cc-green)]" : "text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)]"
                 }`}
-                id={`navbar-link-${link.label.toLowerCase()}`}
+                id={`navbar-link-${label.toLowerCase()}`}
               >
-                <span className="text-sm">{link.icon}</span>
-                <span className="hidden md:inline">{link.label}</span>
+                <Icon size={16} />
+                <span className="hidden md:inline">{label}</span>
               </button>
             );
           })}
