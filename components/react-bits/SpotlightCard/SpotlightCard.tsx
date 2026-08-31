@@ -8,15 +8,20 @@ interface Position {
   y: number;
 }
 
-export interface SpotlightCardProps extends React.PropsWithChildren {
-  className?: string;
+export interface SpotlightCardProps extends React.HTMLAttributes<HTMLDivElement> {
   spotlightColor?: `rgba(${number}, ${number}, ${number}, ${number})`;
 }
 
 const SpotlightCard: React.FC<SpotlightCardProps> = ({
   children,
   className = '',
-  spotlightColor = 'rgba(255, 255, 255, 0.25)'
+  spotlightColor = 'rgba(255, 255, 255, 0.25)',
+  onMouseMove,
+  onFocus,
+  onBlur,
+  onMouseEnter,
+  onMouseLeave,
+  ...rest
 }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState<boolean>(false);
@@ -28,24 +33,29 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
 
     const rect = divRef.current.getBoundingClientRect();
     setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    onMouseMove?.(e);
   };
 
-  const handleFocus = () => {
+  const handleFocus: React.FocusEventHandler<HTMLDivElement> = e => {
     setIsFocused(true);
     setOpacity(0.6);
+    onFocus?.(e);
   };
 
-  const handleBlur = () => {
+  const handleBlur: React.FocusEventHandler<HTMLDivElement> = e => {
     setIsFocused(false);
     setOpacity(0);
+    onBlur?.(e);
   };
 
-  const handleMouseEnter = () => {
+  const handleMouseEnter: React.MouseEventHandler<HTMLDivElement> = e => {
     setOpacity(0.6);
+    onMouseEnter?.(e);
   };
 
-  const handleMouseLeave = () => {
+  const handleMouseLeave: React.MouseEventHandler<HTMLDivElement> = e => {
     setOpacity(0);
+    onMouseLeave?.(e);
   };
 
   return (
@@ -57,6 +67,7 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
       className={cn('relative rounded-3xl border border-neutral-800 bg-neutral-900 overflow-hidden p-8', className)}
+      {...rest}
     >
       <div
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 ease-in-out"
