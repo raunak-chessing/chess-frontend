@@ -128,7 +128,6 @@ export const PuzzleSolver = memo(function PuzzleSolver({
           <Board
             position={boardPosition}
             flipped={puzzle?.fen.includes(" b ")}
-            viewMode="2d"
             onPieceDrop={handlePieceDrop}
             squareStyles={{}}
             onSquareClick={() => {}}

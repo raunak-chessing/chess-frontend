@@ -200,7 +200,6 @@ export const PuzzleRush = memo(function PuzzleRush({ onReturnHome }: PuzzleRushP
             <Board
               position={boardPosition}
               flipped={puzzle?.fen.includes(" b ")}
-              viewMode="2d"
               onPieceDrop={handlePieceDrop}
               squareStyles={{}}
               onSquareClick={() => {}}

@@ -5,14 +5,18 @@ import { useRouter } from 'next/navigation';
 import { tournamentsApi, Tournament } from '../../api/tournamentsApi';
 import { Card } from '../../../../components/ui/Card';
 import { SectionHeader } from '../../../../components/ui/SectionHeader';
+import { PromptDialog } from '@/components/ui/PromptDialog';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
+
+type CreateKind = 'arena' | 'swiss' | null;
 
 export function TournamentsList() {
   const router = useRouter();
   const { data: session } = authClient.useSession();
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [loading, setLoading] = useState(true);
+  const [createKind, setCreateKind] = useState<CreateKind>(null);
 
   useEffect(() => {
     tournamentsApi.getTournaments()
@@ -21,45 +25,45 @@ export function TournamentsList() {
       .finally(() => setLoading(false));
   }, []);
 
-  const handleCreateArena = async () => {
+  const requireSession = (message: string) => {
     if (!session?.user) {
-      toast.error('Must be logged in to create an arena');
-      return;
+      toast.error(message);
+      return false;
     }
-    const name = prompt('Arena name:');
-    if (!name) return;
-    try {
-      const newArena = await tournamentsApi.createArena({
-        name,
-        timeControl: '3|0',
-        durationMinutes: 60,
-        startsInMinutes: 5,
-      });
-      toast.success('Arena created!');
-      router.push(`/tournaments/${newArena.id}`);
-    } catch (e) {
-      toast.error('Failed to create arena');
-    }
+    return true;
   };
 
-  const handleCreateSwiss = async () => {
-    if (!session?.user) {
-      toast.error('Must be logged in to create a Swiss tournament');
-      return;
-    }
-    const name = prompt('Swiss tournament name:');
-    if (!name) return;
+  const handleCreateArena = () => {
+    if (requireSession('Must be logged in to create an arena')) setCreateKind('arena');
+  };
+
+  const handleCreateSwiss = () => {
+    if (requireSession('Must be logged in to create a Swiss tournament')) setCreateKind('swiss');
+  };
+
+  const handleConfirmCreate = async (name: string) => {
     try {
-      const newSwiss = await tournamentsApi.createSwiss({
-        name,
-        timeControl: '10|0',
-        maxRounds: 5,
-        startsInMinutes: 5,
-      });
-      toast.success('Swiss tournament created!');
-      router.push(`/tournaments/${newSwiss.id}`);
+      if (createKind === 'arena') {
+        const newArena = await tournamentsApi.createArena({
+          name,
+          timeControl: '3|0',
+          durationMinutes: 60,
+          startsInMinutes: 5,
+        });
+        toast.success('Arena created!');
+        router.push(`/tournaments/${newArena.id}`);
+      } else if (createKind === 'swiss') {
+        const newSwiss = await tournamentsApi.createSwiss({
+          name,
+          timeControl: '10|0',
+          maxRounds: 5,
+          startsInMinutes: 5,
+        });
+        toast.success('Swiss tournament created!');
+        router.push(`/tournaments/${newSwiss.id}`);
+      }
     } catch (e) {
-      toast.error('Failed to create Swiss tournament');
+      toast.error(createKind === 'arena' ? 'Failed to create arena' : 'Failed to create Swiss tournament');
     }
   };
 
@@ -123,6 +127,15 @@ export function TournamentsList() {
           )}
         </div>
       </div>
+
+      <PromptDialog
+        open={createKind !== null}
+        onOpenChange={(open) => !open && setCreateKind(null)}
+        title={createKind === 'arena' ? 'Create Arena' : 'Create Swiss Tournament'}
+        label={createKind === 'arena' ? 'Arena name' : 'Tournament name'}
+        placeholder={createKind === 'arena' ? 'Friday Night Blitz' : 'Weekend Swiss'}
+        onConfirm={handleConfirmCreate}
+      />
     </div>
   );
 }

@@ -9,8 +9,6 @@ interface GameControlsProps {
   joinedRoom: string;
   playerColor: "w" | "b" | "s" | null;
   isGameOver: boolean;
-  viewMode: "3d" | "2.5d" | "2d";
-  onViewModeChange: (mode: "3d" | "2.5d" | "2d") => void;
   onAutoFlipToggle: (checked: boolean) => void;
   onFlipBoard: () => void;
   onUndo: () => void;
@@ -28,8 +26,6 @@ const GameControls = memo(function GameControls({
   hasHistory,
   joinedRoom,
   isGameOver,
-  viewMode,
-  onViewModeChange,
   onAutoFlipToggle,
   onFlipBoard,
   onUndo,
@@ -52,29 +48,6 @@ const GameControls = memo(function GameControls({
   return (
     <div className="relative flex flex-col items-center gap-4">
       <div className="flex flex-col items-center gap-3 border p-3 rounded-2xl shadow-xl bg-cc-bg-card border-cc-border">
-        <button
-          onClick={() => onViewModeChange("3d")}
-          className={btnClass(viewMode === "3d")}
-        >
-          3D
-        </button>
-
-        <button
-          onClick={() => onViewModeChange("2.5d")}
-          className={btnClass(viewMode === "2.5d")}
-        >
-          2.5D
-        </button>
-
-        <button
-          onClick={() => onViewModeChange("2d")}
-          className={btnClass(viewMode === "2d")}
-        >
-          2D
-        </button>
-
-        <div className="w-8 border-b my-1 border-cc-border" />
-
         <button
           onClick={onFlipBoard}
           title="Flip Board"

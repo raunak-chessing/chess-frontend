@@ -45,7 +45,6 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
   const [gameMode, setGameMode] = useState<GameMode>(initialMode);
   const [localResult, setLocalResult] = useState<"won" | "lost" | "draw" | "opponent-disconnected" | "opponent-resigned" | null>(null);
   const [overlayDismissed, setOverlayDismissed] = useState(false);
-  const [viewMode, setViewMode] = useState<"3d" | "2.5d" | "2d">("3d");
   const [showReview, setShowReview] = useState(false);
   const [isBlindfold, setIsBlindfold] = useState(false);
 
@@ -493,7 +492,6 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
               <Board
                 position={gameState.fen}
                 flipped={gameState.flipped}
-                viewMode={viewMode}
                 onPieceDrop={handlePieceDrop}
                 squareStyles={gameState.getSquareStyles()}
                 onSquareClick={handleSquareClick}
@@ -589,8 +587,6 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
               joinedRoom={socketState.joinedRoom}
               playerColor={socketState.playerColor}
               isGameOver={derivedResult !== null || gameState.game.isGameOver()}
-              viewMode={viewMode}
-              onViewModeChange={setViewMode}
               onAutoFlipToggle={gameState.handleAutoFlipToggle}
               onFlipBoard={handleFlipBoard}
               onUndo={handleUndo}

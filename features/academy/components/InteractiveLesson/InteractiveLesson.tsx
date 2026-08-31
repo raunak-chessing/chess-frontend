@@ -319,7 +319,6 @@ export const InteractiveLesson = memo(function InteractiveLesson({
               <Board
                 position={boardPosition}
                 flipped={lesson.turn === "b"}
-                viewMode="2d"
                 onPieceDrop={handlePieceDrop}
                 squareStyles={{}}
                 onSquareClick={() => {}}

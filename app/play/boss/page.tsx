@@ -77,7 +77,6 @@ export default function BossFightPage() {
             <Board
               position={bossState.fen}
               flipped={false}
-              viewMode="2.5d"
               onPieceDrop={handlePieceDrop}
               isDraggablePiece={() => !votedMove}
             />

@@ -182,7 +182,6 @@ export const OpeningExplorer = memo(function OpeningExplorer({ onReturnToDashboa
             <Board
               position={boardPosition}
               flipped={false}
-              viewMode="2d"
               onPieceDrop={() => false} // View-only board explorer
               squareStyles={{}}
               onSquareClick={() => {}}

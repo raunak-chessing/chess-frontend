@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { studiesApi, Study } from '../../api/studiesApi';
 import { Card } from '../../../../components/ui/Card';
 import { SectionHeader } from '../../../../components/ui/SectionHeader';
+import { PromptDialog } from '@/components/ui/PromptDialog';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
 
@@ -14,6 +15,7 @@ export function StudiesExplorer() {
   const [studies, setStudies] = useState<Study[]>([]);
   const [myStudies, setMyStudies] = useState<Study[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -22,14 +24,16 @@ export function StudiesExplorer() {
     ]).finally(() => setLoading(false));
   }, [session]);
 
-  const handleCreateStudy = async () => {
+  const handleCreateStudy = () => {
     if (!session?.user) {
       toast.error('You must be logged in to create a study');
       return;
     }
+    setIsCreateOpen(true);
+  };
+
+  const handleConfirmCreateStudy = async (title: string) => {
     try {
-      const title = prompt('Enter a title for your new study:');
-      if (!title) return;
       const newStudy = await studiesApi.createStudy({ title });
       router.push(`/studies/${newStudy.id}`);
     } catch (e) {
@@ -95,6 +99,15 @@ export function StudiesExplorer() {
           ))}
         </div>
       </div>
+
+      <PromptDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        title="Create Study"
+        label="Study title"
+        placeholder="Sicilian Defense: Najdorf Variation"
+        onConfirm={handleConfirmCreateStudy}
+      />
     </div>
   );
 }

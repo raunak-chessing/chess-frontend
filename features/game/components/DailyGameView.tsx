@@ -175,8 +175,6 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
             joinedRoom=""
             playerColor={null}
             isGameOver={gameState.game.isGameOver()}
-            viewMode="2d"
-            onViewModeChange={() => {}}
             onAutoFlipToggle={gameState.handleAutoFlipToggle}
             onFlipBoard={() => gameState.setFlipped(!gameState.flipped)}
             onUndo={() => {}}
@@ -197,7 +195,6 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
               onSquareClick={handleSquareClick}
               flipped={isFlipped ? !gameState.flipped : gameState.flipped}
               squareStyles={gameState.getSquareStyles()}
-              viewMode="2d"
             />
             {gameState.pendingPromotion && (
               <PromotionPicker

@@ -121,7 +121,6 @@ export function RatedPuzzles() {
             <Board
               position={boardPosition}
               flipped={currentRatedPuzzle.fen.includes(" w ") ? false : true}
-              viewMode="2d"
               onPieceDrop={handlePieceDrop}
               squareStyles={{}}
               onSquareClick={() => {}}

@@ -125,7 +125,6 @@ export function DailyPuzzle({ onReturnHome }: { onReturnHome: () => void }) {
             <Board
               position={boardPosition}
               flipped={dailyData.puzzle.fen.includes(" w ") ? false : true}
-              viewMode="2d"
               onPieceDrop={handlePieceDrop}
               squareStyles={{}}
               onSquareClick={() => {}}

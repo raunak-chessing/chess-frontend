@@ -1,6 +1,6 @@
 "use client";
 
-import React, { memo, useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { memo, useEffect, useCallback, useMemo } from "react";
 import dynamic from "next/dynamic";
 const Chessboard = dynamic(() => import("react-chessboard").then(mod => mod.Chessboard), { ssr: false });
 import type { ChessboardOptions } from "react-chessboard";
@@ -12,7 +12,6 @@ import { WoodGradientDefs } from "../WoodGradientDefs";
 const Board = memo(function Board({
   position,
   flipped,
-  viewMode = "3d",
   onPieceDrop,
   squareStyles,
   onPremoveClear,
@@ -84,93 +83,6 @@ const Board = memo(function Board({
     return () => window.removeEventListener("contextmenu", handleContextMenu);
   }, [handleContextMenu]);
 
-  const [rotX, setRotX] = useState(0);
-  const [rotZ, setRotZ] = useState(0);
-  const [isDragging, setIsDragging] = useState(false);
-
-  const dragStart = useRef({ x: 0, y: 0, rotX: 0, rotZ: 0 });
-
-  useEffect(() => {
-    if (viewMode === "3d") {
-      setRotX(0); // 3D transforms break react-chessboard drag-and-drop calculations
-      setRotZ(0);
-    } else if (viewMode === "2.5d") {
-      setRotX(0);
-      setRotZ(0);
-    } else if (viewMode === "2d") {
-      setRotX(0);
-      setRotZ(0);
-    }
-  }, [viewMode]);
-
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.closest(".inner-chessboard-grid-container")) {
-      return;
-    }
-
-    setIsDragging(true);
-    dragStart.current = {
-      x: e.clientX,
-      y: e.clientY,
-      rotX,
-      rotZ,
-    };
-  };
-
-  const handleMouseMove = useCallback(() => {
-    // 3D rotation dragging disabled because it breaks react-chessboard piece dragging
-  }, []);
-
-  const handleMouseUp = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  const handleTouchStart = (e: React.TouchEvent<HTMLDivElement>) => {
-    const target = e.target as HTMLElement;
-    if (target.closest(".inner-chessboard-grid-container")) {
-      return;
-    }
-    const touch = e.touches[0];
-    if (!touch) return;
-
-    setIsDragging(true);
-    dragStart.current = {
-      x: touch.clientX,
-      y: touch.clientY,
-      rotX,
-      rotZ,
-    };
-  };
-
-  const handleTouchMove = useCallback(() => {
-    // 3D rotation dragging disabled
-  }, []);
-
-  const handleTouchEnd = useCallback(() => {
-    setIsDragging(false);
-  }, []);
-
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-      window.addEventListener("touchmove", handleTouchMove, { passive: false });
-      window.addEventListener("touchend", handleTouchEnd);
-    } else {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleTouchEnd);
-    }
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-      window.removeEventListener("touchmove", handleTouchMove);
-      window.removeEventListener("touchend", handleTouchEnd);
-    };
-  }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
-
   const letters = flipped
     ? ["H", "G", "F", "E", "D", "C", "B", "A"]
     : ["A", "B", "C", "D", "E", "F", "G", "H"];
@@ -179,19 +91,7 @@ const Board = memo(function Board({
     : ["8", "7", "6", "5", "4", "3", "2", "1"];
 
   return (
-    <div
-      onMouseDown={handleMouseDown}
-      onTouchStart={handleTouchStart}
-      className={`relative wood-board-frame rounded-2xl shadow-3xl select-none board-container-responsive aspect-square flex items-center justify-center p-[4.5%] cursor-grab ${
-        isDragging ? "cursor-grabbing" : ""
-      } ${rotX === 0 ? "board-is-2d" : "board-is-3d"}`}
-      style={{
-        "--board-rot-x": `${rotX}deg`,
-        "--board-rot-z": `${rotZ}deg`,
-        transform: rotX === 0 && rotZ === 0 ? "none" : `rotateX(${rotX}deg) rotateZ(${rotZ}deg)`,
-        transformStyle: rotX === 0 && rotZ === 0 ? "flat" : "preserve-3d",
-      } as React.CSSProperties}
-    >
+    <div className="relative wood-board-frame rounded-2xl shadow-3xl select-none board-container-responsive aspect-square flex items-center justify-center p-[4.5%] board-is-2d">
       <WoodGradientDefs />
       <div className="absolute top-[0.6%] left-[7.5%] right-[7.5%] h-[3.5%] flex items-center justify-around text-[clamp(8px,1.8cqw,12px)] font-extrabold text-cc-text-primary drop-shadow-[0_1px_1px_rgba(0,0,0,0.8)] font-serif">
         {letters.map((l) => (

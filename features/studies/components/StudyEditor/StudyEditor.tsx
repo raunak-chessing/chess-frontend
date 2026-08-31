@@ -10,6 +10,7 @@ import { useStudyStore } from '../../store/studiesStore';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
 import { Save, Plus } from 'lucide-react';
+import { PromptDialog } from '@/components/ui/PromptDialog';
 
 type BoardArrows = NonNullable<ChessboardOptions['arrows']>;
 
@@ -47,6 +48,7 @@ export function StudyEditor({ studyId }: { studyId: string }) {
   const [loading, setLoading] = useState(true);
   const [game, setGame] = useState(new Chess());
   const [arrows, setArrows] = useState<BoardArrows>([]);
+  const [isAddChapterOpen, setIsAddChapterOpen] = useState(false);
 
   useEffect(() => {
     studiesApi.getStudy(studyId)
@@ -74,11 +76,9 @@ export function StudyEditor({ studyId }: { studyId: string }) {
     setArrows(chapter.annotations ?? []);
   };
 
-  const handleAddChapter = async () => {
+  const handleConfirmAddChapter = async (title: string) => {
     if (!study) return;
     try {
-      const title = prompt('Chapter title:', `Chapter ${(study.chapters?.length || 0) + 1}`);
-      if (!title) return;
       await studiesApi.addChapter(studyId, title);
       const updatedStudy = await studiesApi.getStudy(studyId);
       setActiveStudy(updatedStudy);
@@ -166,7 +166,7 @@ export function StudyEditor({ studyId }: { studyId: string }) {
 
         {isOwner && (
           <button
-            onClick={handleAddChapter}
+            onClick={() => setIsAddChapterOpen(true)}
             className="mt-4 flex items-center justify-center gap-2 w-full py-2 bg-cc-bg-sidebar hover:bg-[var(--cc-border)] text-cc-text-primary rounded-md transition-colors"
           >
             <Plus size={16} /> Add Chapter
@@ -202,6 +202,16 @@ export function StudyEditor({ studyId }: { studyId: string }) {
           </div>
         </div>
       </div>
+
+      <PromptDialog
+        open={isAddChapterOpen}
+        onOpenChange={setIsAddChapterOpen}
+        title="Add Chapter"
+        label="Chapter title"
+        defaultValue={`Chapter ${(study.chapters?.length || 0) + 1}`}
+        confirmLabel="Add"
+        onConfirm={handleConfirmAddChapter}
+      />
     </div>
   );
 }

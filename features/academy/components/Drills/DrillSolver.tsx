@@ -180,7 +180,6 @@ export const DrillSolver = memo(function DrillSolver({ drill }: DrillSolverProps
             <Board
               position={boardPosition}
               flipped={drill.playerColor === "b"}
-              viewMode="2d"
               onPieceDrop={handlePieceDrop}
               squareStyles={{}}
               onSquareClick={() => {}}
