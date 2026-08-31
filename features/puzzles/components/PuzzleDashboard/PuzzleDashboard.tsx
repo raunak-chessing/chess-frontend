@@ -1,7 +1,7 @@
 "use client";
 
 import { memo } from "react";
-import { Target, Zap, Swords, Calendar, Search, Shield } from "lucide-react";
+import { Target, Lightning, Sword, Calendar, MagnifyingGlass, Shield } from "@phosphor-icons/react";
 import { BlurText } from "@/components/react-bits";
 import { OptionCardGrid, type OptionCardItem } from "@/components/features/OptionCardGrid";
 
@@ -15,14 +15,14 @@ const MODES: OptionCardItem[] = [
   },
   {
     href: "/puzzles/rush",
-    Icon: Zap,
+    Icon: Lightning,
     title: "Puzzle Rush",
     description: "Solve as many puzzles as you can in 3 minutes. 3 strikes and you're out!",
     accent: "amber",
   },
   {
     href: "/play/battle",
-    Icon: Swords,
+    Icon: Sword,
     title: "Puzzle Battle",
     description: "Race head-to-head against an opponent in real-time. First to strike out loses.",
     accent: "blue",
@@ -36,7 +36,7 @@ const MODES: OptionCardItem[] = [
   },
   {
     href: "/puzzles/custom",
-    Icon: Search,
+    Icon: MagnifyingGlass,
     title: "Custom Puzzles",
     description: "Filter puzzles by specific motifs like Forks, Pins, Endgame, or Mate in 2.",
     accent: "pink",

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { usePuzzlesStore } from "../../../features/puzzles/store/puzzlesStore";
 import { PuzzleSolver } from "../../../features/puzzles/components/PuzzleSolver";
-import { Crown, Anchor, Pin, Swords, Zap } from "lucide-react";
+import { Crown, Anchor, PushPin, Sword, Lightning } from "@phosphor-icons/react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LoadingState } from "@/components/ui/LoadingState";
 import { OptionCardGrid, type OptionCardItem } from "@/components/features/OptionCardGrid";
@@ -11,9 +11,9 @@ import { OptionCardGrid, type OptionCardItem } from "@/components/features/Optio
 const THEMES = [
   { id: "endgame", label: "Endgame", Icon: Crown, description: "Convert simplified, technical positions." },
   { id: "fork", label: "Fork", Icon: Anchor, description: "Attack two pieces with one move." },
-  { id: "pin", label: "Pin", Icon: Pin, description: "Exploit a piece that can't move." },
-  { id: "mateIn2", label: "Mate in 2", Icon: Swords, description: "Find the forced two-move checkmate." },
-  { id: "skewer", label: "Skewer", Icon: Zap, description: "Force a valuable piece to move aside." },
+  { id: "pin", label: "Pin", Icon: PushPin, description: "Exploit a piece that can't move." },
+  { id: "mateIn2", label: "Mate in 2", Icon: Sword, description: "Find the forced two-move checkmate." },
+  { id: "skewer", label: "Skewer", Icon: Lightning, description: "Force a valuable piece to move aside." },
 ];
 
 export default function CustomPuzzlesPage() {

@@ -1,6 +1,6 @@
 "use client";
 
-import { Crown, Flag, Shield } from "lucide-react";
+import { Crown, Flag, Shield } from "@phosphor-icons/react";
 import { DRILLS, type Drill } from "../../../features/academy/constants/drills";
 import { Card } from "../../../components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";

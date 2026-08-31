@@ -1,12 +1,12 @@
 "use client";
 
-import { Zap, Cpu, Users, Puzzle, Swords, Skull, Radio } from "lucide-react";
+import { Lightning, Cpu, Users, PuzzlePiece, Sword, Skull, Radio } from "@phosphor-icons/react";
 import { OptionCardGrid, type OptionCardItem } from "@/components/features/OptionCardGrid";
 
 const MODES: OptionCardItem[] = [
   {
     href: "/play/online",
-    Icon: Zap,
+    Icon: Lightning,
     title: "Play Online",
     description: "Play vs someone at your level",
     primary: true,
@@ -27,14 +27,14 @@ const MODES: OptionCardItem[] = [
   },
   {
     href: "/play/puzzles",
-    Icon: Puzzle,
+    Icon: PuzzlePiece,
     title: "Puzzle Rush",
     description: "Solve puzzles under a 3-minute timer",
     accent: "purple",
   },
   {
     href: "/play/battle",
-    Icon: Swords,
+    Icon: Sword,
     title: "Puzzle Battle",
     description: "Race an opponent — same puzzle, first to solve wins",
     accent: "amber",

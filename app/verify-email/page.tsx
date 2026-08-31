@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense, KeyboardEvent, ClipboardEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { MailCheck } from "lucide-react";
+import { Envelope } from "@phosphor-icons/react";
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/Spinner";
 import { AuthPageShell } from "@/components/layout/AuthPageShell";
@@ -133,7 +133,7 @@ function VerifyEmailForm() {
     <AuthPageShell title="Chess Arena" subtitle="Verify your email address">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-cc-green/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <MailCheck className="w-8 h-8 text-cc-green" strokeWidth={1.5} />
+              <Envelope className="w-8 h-8 text-cc-green" />
             </div>
             <p className="text-cc-text-muted text-sm">
               We sent a 6-digit code to

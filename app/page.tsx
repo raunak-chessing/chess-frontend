@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Zap, Puzzle, Trophy, GraduationCap } from "lucide-react";
+import { Lightning, PuzzlePiece, Trophy, GraduationCap } from "@phosphor-icons/react";
 import Chessboard from "../components/Chessboard";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
@@ -18,14 +18,14 @@ gsap.registerPlugin(useGSAP, ScrollTrigger);
 const GUEST_HIGHLIGHTS: OptionCardItem[] = [
   {
     href: "/play",
-    Icon: Zap,
+    Icon: Lightning,
     title: "Play Any Way You Like",
     description: "Ranked online matches, local PvP, or customizable training bots.",
     accent: "green",
   },
   {
     href: "/puzzles",
-    Icon: Puzzle,
+    Icon: PuzzlePiece,
     title: "Sharpen Your Tactics",
     description: "An endless puzzle database that adapts to your rating.",
     accent: "amber",

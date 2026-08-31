@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import type { LucideIcon } from "lucide-react";
+import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/utils";
 
 export type OptionAccent = "green" | "amber" | "blue" | "purple" | "pink" | "red";
 
 const ACCENT_STYLES: Record<OptionAccent, { chipBg: string; iconText: string; hoverBorder: string; spotlight: `rgba(${number}, ${number}, ${number}, ${number})` }> = {
-  green: { chipBg: "bg-cc-green/15", iconText: "text-cc-green", hoverBorder: "hover:border-cc-green", spotlight: "rgba(129, 182, 76, 0.35)" },
+  green: { chipBg: "bg-cc-green/15", iconText: "text-cc-green", hoverBorder: "hover:border-cc-green", spotlight: "rgba(93, 112, 82, 0.35)" },
   amber: { chipBg: "bg-amber-500/15", iconText: "text-amber-500", hoverBorder: "hover:border-amber-500", spotlight: "rgba(245, 158, 11, 0.35)" },
   blue: { chipBg: "bg-blue-500/15", iconText: "text-blue-500", hoverBorder: "hover:border-blue-500", spotlight: "rgba(59, 130, 246, 0.35)" },
   purple: { chipBg: "bg-purple-500/15", iconText: "text-purple-500", hoverBorder: "hover:border-purple-500", spotlight: "rgba(168, 85, 247, 0.35)" },
@@ -21,7 +21,7 @@ export interface OptionCardItem {
   href?: string;
   /** Fires in-page selection (e.g. picking a theme/filter) instead of navigating. */
   onClick?: () => void;
-  Icon: LucideIcon;
+  Icon: PhosphorIcon;
   title: string;
   description: string;
   accent?: OptionAccent;
@@ -66,14 +66,22 @@ function OptionCard({ item, variant }: { item: OptionCardItem; variant: "row" | 
   const { href, onClick, Icon, title, description, accent = "green", badge, primary } = item;
   const style = ACCENT_STYLES[accent];
 
+  // The solid-fill "primary" treatment is one flat colored surface by
+  // design — the nested double-bezel frame is for cards that need to look
+  // like they're sitting *on* something, which doesn't apply once the card
+  // itself is the loud element (its white inner core would otherwise show
+  // through/behind the fill and swallow the white text).
   const content = (
     <Card
-      interactive
-      spotlightColor={primary ? "rgba(255, 255, 255, 0.25)" : style.spotlight}
+      interactive={!primary}
+      bezel={!primary}
+      spotlightColor={style.spotlight}
       className={cn(
         "h-full transition-colors duration-200",
         variant === "tile" ? "flex flex-col items-start gap-4" : "flex items-center gap-4",
-        primary ? "bg-cc-green border-cc-green text-white hover:bg-cc-green-hover" : style.hoverBorder,
+        primary
+          ? "bg-cc-green text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.25)] rounded-[1.75rem]"
+          : style.hoverBorder,
       )}
     >
       <div
