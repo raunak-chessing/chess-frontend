@@ -4,6 +4,7 @@ import { use, useEffect, useState } from "react";
 import { ArenaLobby } from "@/features/tournaments/components/ArenaLobby";
 import { SwissLobby } from "@/features/tournaments/components/SwissLobby";
 import { tournamentsApi } from "@/features/tournaments/api/tournamentsApi";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function TournamentDetailPage({ params }: { params: Promise<{ tournamentId: string }> }) {
   const { tournamentId } = use(params);
@@ -22,7 +23,7 @@ export default function TournamentDetailPage({ params }: { params: Promise<{ tou
   }
 
   if (!type) {
-    return <div className="p-8 text-center">Loading tournament...</div>;
+    return <LoadingState variant="fill" label="Loading tournament…" />;
   }
 
   if (type === "SWISS") {

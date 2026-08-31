@@ -8,6 +8,7 @@ import { getSocket } from '@/lib/socket-client';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
 import { useTournamentDetails } from '../../hooks/useTournamentDetails';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
   const router = useRouter();
@@ -57,7 +58,7 @@ export function ArenaLobby({ tournamentId }: { tournamentId: string }) {
     }
   };
 
-  if (loading) return <div className="p-8 text-center">Loading Arena...</div>;
+  if (loading) return <LoadingState variant="fill" label="Loading arena…" />;
   if (!tournament) return <div className="p-8 text-center">Arena not found</div>;
 
   return (

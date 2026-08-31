@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { z } from "zod";
 import { Card } from "@/components/ui/Card";
 import { SectionHeader } from "@/components/ui/SectionHeader";
-import { Spinner } from "@/components/ui/Spinner";
+import { LoadingState } from "@/components/ui/LoadingState";
 import { toast } from "react-hot-toast";
 import { fetchApi, ApiError } from "@/lib/api-client";
 
@@ -69,11 +69,7 @@ export function AdminDashboard() {
   };
 
   if (authorized === null) {
-    return (
-      <div className="flex items-center justify-center p-12">
-        <Spinner />
-      </div>
-    );
+    return <LoadingState label="Checking access…" />;
   }
 
   if (!authorized) {
