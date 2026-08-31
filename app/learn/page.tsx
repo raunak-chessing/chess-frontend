@@ -11,6 +11,7 @@ import {
 } from "@/features/academy";
 import { fetchApi } from "@/lib/api-client";
 import { z } from "zod";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 type LearnViewState = "dashboard" | "lesson" | "explorer";
 
@@ -80,12 +81,7 @@ export default function LearnPage() {
 
         {/* View State Router */}
         {loading ? (
-          <div className="py-24 flex flex-col items-center justify-center gap-3">
-            <span className="w-8 h-8 border-3 border-cc-text-primary border-t-transparent rounded-full animate-spin" />
-            <span className="text-[10px] font-serif font-extrabold text-cc-text-primary/80 tracking-widest uppercase">
-              Loading Academy Progress...
-            </span>
-          </div>
+          <LoadingState label="Loading academy progress…" />
         ) : viewState === "lesson" && activeLesson ? (
           <InteractiveLesson
             lesson={activeLesson}
