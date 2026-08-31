@@ -5,6 +5,7 @@ import { SectionHeader } from "../../../../components/ui/SectionHeader";
 import { OnlineMatchmaker } from "../OnlineMatchmaker";
 import { TIME_CONTROLS, CHESS_VARIANTS, COMPUTER_OPPONENTS } from "../../constants/setupOptions";
 import type { GameMode, GameVariant } from "../../types/game.types";
+import type { UseGameSocketReturn } from "../../hooks/useGameSocket";
 
 interface GameSetupLobbyProps {
   gameMode: GameMode;
@@ -20,7 +21,7 @@ interface GameSetupLobbyProps {
   setBotSide: (side: "w" | "b" | "random") => void;
   isBlindfold: boolean;
   setIsBlindfold: (isBlindfold: boolean) => void;
-  socketState: any; // Ideally we type this correctly, but using any for quick refactor
+  socketState: UseGameSocketReturn;
   onStartGame: (flip: boolean) => void;
 }
 
@@ -176,7 +177,7 @@ export function GameSetupLobby({
           <div className="mt-4">
             <OnlineMatchmaker
               joinedRoom={socketState.joinedRoom}
-              playerColor={socketState.playerColor}
+              playerColor={socketState.playerColor === "s" ? null : socketState.playerColor}
               inQueue={socketState.inQueue}
               userRating={socketState.userRating}
               roomCode={socketState.roomCode}
