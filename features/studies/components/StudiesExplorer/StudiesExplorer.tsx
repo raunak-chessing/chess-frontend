@@ -6,6 +6,8 @@ import { studiesApi, Study } from '../../api/studiesApi';
 import { Card } from '../../../../components/ui/Card';
 import { SectionHeader } from '../../../../components/ui/SectionHeader';
 import { PromptDialog } from '@/components/ui/PromptDialog';
+import { LoadingState } from '@/components/ui/LoadingState';
+import { BlurText } from '@/components/react-bits';
 import { authClient } from '@/lib/auth-client';
 import { toast } from 'react-hot-toast';
 
@@ -42,14 +44,19 @@ export function StudiesExplorer() {
   };
 
   if (loading) {
-    return <div className="text-center py-20 text-cc-text-secondary">Loading studies...</div>;
+    return <LoadingState variant="fill" label="Loading studies…" />;
   }
 
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8 font-sans">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold text-cc-text-primary mb-2">Interactive Studies</h1>
+          <BlurText
+            text="Interactive Studies"
+            animateBy="words"
+            direction="top"
+            className="text-3xl font-bold text-cc-text-primary mb-2"
+          />
           <p className="text-cc-text-secondary">Explore community chess studies or create your own to analyze games.</p>
         </div>
         <button
@@ -67,7 +74,9 @@ export function StudiesExplorer() {
             {myStudies.map(study => (
               <Card
                 key={study.id}
-                className="p-4 cursor-pointer hover:border-primary transition-colors flex flex-col gap-2"
+                interactive
+                spotlightColor="rgba(129, 182, 76, 0.3)"
+                className="p-4 cursor-pointer flex flex-col gap-2"
                 onClick={() => router.push(`/studies/${study.id}`)}
               >
                 <h3 className="font-bold text-cc-text-primary text-lg">{study.title}</h3>
