@@ -93,9 +93,9 @@ export function StudyEditor({ studyId }: { studyId: string }) {
       await studiesApi.updateChapter(activeChapterId, {
         fen: game.fen(),
         pgn: game.pgn(),
-        annotations: arrows.map((a: any) => ({ ...a, type: 'arrow' })),
+        annotations: arrows.map((a) => ({ ...a, type: 'arrow' })),
       });
-      updateActiveChapter({ fen: game.fen(), pgn: game.pgn(), annotations: arrows.map((a: any) => ({ ...a, type: 'arrow' })) as any });
+      updateActiveChapter({ fen: game.fen(), pgn: game.pgn(), annotations: arrows.map((a) => ({ ...a, type: 'arrow' })) });
       toast.success('Chapter saved');
     } catch {
       toast.error('Failed to save chapter');

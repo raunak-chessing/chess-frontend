@@ -155,9 +155,9 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
     let matchedMove = null;
 
     if (typeof move === "string") {
-      matchedMove = legalMoves.find((m: any) => m.san.toLowerCase() === move.toLowerCase() || m.lan === move);
+      matchedMove = legalMoves.find((m) => m.san.toLowerCase() === move.toLowerCase() || m.lan === move);
     } else {
-      matchedMove = legalMoves.find((m: any) => m.from === move.from && m.to === move.to);
+      matchedMove = legalMoves.find((m) => m.from === move.from && m.to === move.to);
     }
 
     if (!matchedMove) return false;
