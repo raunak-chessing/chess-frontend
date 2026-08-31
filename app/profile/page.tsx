@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Spinner } from "@/components/ui/Spinner";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function SelfProfileRedirectPage() {
   const router = useRouter();
@@ -21,12 +21,7 @@ export default function SelfProfileRedirectPage() {
 
   return (
     <main className="min-h-screen bg-cc-bg-page flex items-center justify-center p-6 text-cc-text-primary">
-      <div className="flex flex-col items-center gap-3">
-        <Spinner />
-        <span className="text-xs font-serif font-extrabold text-cc-text-primary/80 tracking-wide uppercase">
-          Redirecting to Profile...
-        </span>
-      </div>
+      <LoadingState label="Redirecting to profile…" />
     </main>
   );
 }

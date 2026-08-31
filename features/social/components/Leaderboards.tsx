@@ -1,7 +1,15 @@
 import { useEffect, useState } from "react";
-import { Loader2, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 import Image from "next/image";
 import { socialApi, LeaderboardUser, LeaderboardsData } from "../api/socialApi";
+import { LoadingState } from "@/components/ui/LoadingState";
+import { cn } from "@/lib/utils";
+
+const RANK_MEDAL: Record<number, string> = {
+  0: "bg-amber-400/15 text-amber-400 border-amber-400/40",
+  1: "bg-slate-300/15 text-slate-300 border-slate-300/40",
+  2: "bg-orange-600/15 text-orange-500 border-orange-600/40",
+};
 
 export function Leaderboards() {
   const [data, setData] = useState<LeaderboardsData | null>(null);
@@ -25,10 +33,10 @@ export function Leaderboards() {
 
   if (loading || !data) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 min-h-[400px] text-cc-text-muted bg-cc-bg-card rounded-3xl border border-cc-border">
-        <Loader2 className="w-10 h-10 animate-spin mb-4" />
-        <p className="text-sm font-bold uppercase tracking-wider">Loading Leaderboards...</p>
-      </div>
+      <LoadingState
+        label="Loading leaderboards…"
+        className="min-h-100 bg-cc-bg-card rounded-3xl border border-cc-border"
+      />
     );
   }
 
@@ -81,8 +89,21 @@ export function Leaderboards() {
                   key={user.id} 
                   className="border-b border-cc-border-light hover:bg-cc-bg-hover transition-colors group cursor-pointer"
                 >
-                  <td className="px-6 py-4 font-mono font-bold text-sm text-center text-cc-text-secondary group-hover:text-cc-text-primary">
-                    #{idx + 1}
+                  <td className="px-6 py-4 text-center">
+                    {RANK_MEDAL[idx] ? (
+                      <span
+                        className={cn(
+                          "inline-flex w-7 h-7 items-center justify-center rounded-full border font-mono font-bold text-xs",
+                          RANK_MEDAL[idx],
+                        )}
+                      >
+                        {idx + 1}
+                      </span>
+                    ) : (
+                      <span className="font-mono font-bold text-sm text-cc-text-secondary group-hover:text-cc-text-primary">
+                        #{idx + 1}
+                      </span>
+                    )}
                   </td>
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">

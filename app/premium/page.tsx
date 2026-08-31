@@ -6,6 +6,7 @@ import { Sparkles, Crown, Shield, Zap, CheckCircle2 } from "lucide-react";
 import { fetchApi } from "@/lib/api-client";
 import toast from "react-hot-toast";
 import { z } from "zod";
+import { BlurText, FadeContent } from "@/components/react-bits";
 
 export default function PremiumPage() {
   const router = useRouter();
@@ -39,7 +40,7 @@ export default function PremiumPage() {
       
       <div className="w-full max-w-5xl z-10 grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
         {/* Left Column: Pitch */}
-        <div className="space-y-8">
+        <FadeContent duration={500} initialOpacity={0} threshold={0} className="space-y-8">
           <div>
             <h1 className="text-4xl md:text-5xl font-black font-serif text-white mb-4">
               Unlock Your <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-600">Full Potential</span>
@@ -62,10 +63,16 @@ export default function PremiumPage() {
               </div>
             ))}
           </div>
-        </div>
+        </FadeContent>
 
         {/* Right Column: Pricing Card */}
-        <div className="bg-slate-900 border border-slate-700 rounded-3xl p-8 shadow-2xl relative overflow-hidden">
+        <FadeContent
+          duration={500}
+          delay={150}
+          initialOpacity={0}
+          threshold={0}
+          className="bg-slate-900 border border-slate-700 rounded-3xl p-8 shadow-2xl relative overflow-hidden"
+        >
           <div className="absolute top-0 right-0 bg-gradient-to-l from-yellow-500/20 to-transparent w-full h-full pointer-events-none" />
           
           <div className="relative z-10 text-center space-y-6">
@@ -92,7 +99,7 @@ export default function PremiumPage() {
               {loading ? "Initializing..." : "Upgrade Now"}
             </button>
           </div>
-        </div>
+        </FadeContent>
       </div>
     </main>
   );
