@@ -2,8 +2,10 @@
 
 import { useState, useRef, useEffect, Suspense, KeyboardEvent, ClipboardEvent } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { MailCheck } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { Spinner } from "@/components/ui/Spinner";
+import { AuthPageShell } from "@/components/layout/AuthPageShell";
 
 function VerifyEmailForm() {
   const router = useRouter();
@@ -128,41 +130,10 @@ function VerifyEmailForm() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-cc-bg-sidebar px-4">
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-96 h-96 bg-cc-green/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 -right-32 w-96 h-96 bg-cc-green/5 rounded-full blur-3xl" />
-      </div>
-
-      <div className="w-full max-w-[420px] relative z-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-3 mb-2">
-            <div className="w-12 h-12 bg-cc-green rounded-xl flex items-center justify-center shadow-lg shadow-green-900/30">
-              <span className="text-2xl text-white font-bold">♔</span>
-            </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight">
-              Chess Arena
-            </h1>
-          </div>
-          <p className="text-cc-text-secondary text-sm mt-1">Verify your email address</p>
-        </div>
-
-        <div className="bg-cc-bg-card rounded-2xl border border-cc-border shadow-2xl shadow-black/40 p-8">
+    <AuthPageShell title="Chess Arena" subtitle="Verify your email address">
           <div className="text-center mb-6">
             <div className="w-16 h-16 bg-cc-green/10 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-8 h-8 text-cc-green"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={1.5}
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-                />
-              </svg>
+              <MailCheck className="w-8 h-8 text-cc-green" strokeWidth={1.5} />
             </div>
             <p className="text-cc-text-muted text-sm">
               We sent a 6-digit code to
@@ -237,9 +208,7 @@ function VerifyEmailForm() {
                   : "Didn\u2019t receive a code? Resend"}
             </button>
           </div>
-        </div>
-      </div>
-    </div>
+    </AuthPageShell>
   );
 }
 

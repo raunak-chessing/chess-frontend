@@ -17,7 +17,10 @@ const ACCENT_STYLES: Record<OptionAccent, { chipBg: string; iconText: string; ho
 };
 
 export interface OptionCardItem {
-  href: string;
+  /** Navigates when set. Mutually exclusive with `onClick` — provide exactly one. */
+  href?: string;
+  /** Fires in-page selection (e.g. picking a theme/filter) instead of navigating. */
+  onClick?: () => void;
   Icon: LucideIcon;
   title: string;
   description: string;
@@ -53,50 +56,62 @@ export function OptionCardGrid({ items, variant = "tile", className }: OptionCar
       )}
     >
       {items.map((item) => (
-        <OptionCard key={item.href} item={item} variant={variant} />
+        <OptionCard key={item.href ?? item.title} item={item} variant={variant} />
       ))}
     </div>
   );
 }
 
 function OptionCard({ item, variant }: { item: OptionCardItem; variant: "row" | "tile" }) {
-  const { href, Icon, title, description, accent = "green", badge, primary } = item;
+  const { href, onClick, Icon, title, description, accent = "green", badge, primary } = item;
   const style = ACCENT_STYLES[accent];
 
-  return (
-    <Link href={href} className="block no-underline h-full">
-      <Card
-        interactive
-        spotlightColor={primary ? "rgba(255, 255, 255, 0.25)" : style.spotlight}
+  const content = (
+    <Card
+      interactive
+      spotlightColor={primary ? "rgba(255, 255, 255, 0.25)" : style.spotlight}
+      className={cn(
+        "h-full transition-colors duration-200",
+        variant === "tile" ? "flex flex-col items-start gap-4" : "flex items-center gap-4",
+        primary ? "bg-cc-green border-cc-green text-white hover:bg-cc-green-hover" : style.hoverBorder,
+      )}
+    >
+      <div
         className={cn(
-          "h-full transition-colors duration-200",
-          variant === "tile" ? "flex flex-col items-start gap-4" : "flex items-center gap-4",
-          primary ? "bg-cc-green border-cc-green text-white hover:bg-cc-green-hover" : style.hoverBorder,
+          "flex items-center justify-center rounded-xl shrink-0",
+          variant === "tile" ? "w-12 h-12" : "w-11 h-11",
+          primary ? "bg-white/15" : style.chipBg,
         )}
       >
-        <div
-          className={cn(
-            "flex items-center justify-center rounded-xl shrink-0",
-            variant === "tile" ? "w-12 h-12" : "w-11 h-11",
-            primary ? "bg-white/15" : style.chipBg,
-          )}
-        >
-          <Icon size={variant === "tile" ? 24 : 22} className={primary ? "text-white" : style.iconText} />
-        </div>
-        <div className={cn("flex flex-col gap-1", variant === "row" && "text-left")}>
-          <span className={cn("font-bold font-serif leading-tight", variant === "tile" ? "text-lg" : "text-base")}>
-            {title}
-          </span>
-          <span className={cn("text-xs leading-relaxed", primary ? "text-white/85" : "text-cc-text-secondary")}>
-            {description}
-          </span>
-        </div>
-        {badge && (
-          <span className="ml-auto shrink-0 rounded-full border border-cc-accent-gold/30 bg-cc-accent-gold/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-cc-accent-gold">
-            {badge}
-          </span>
-        )}
-      </Card>
-    </Link>
+        <Icon size={variant === "tile" ? 24 : 22} className={primary ? "text-white" : style.iconText} />
+      </div>
+      <div className={cn("flex flex-col gap-1", variant === "row" && "text-left")}>
+        <span className={cn("font-bold font-serif leading-tight", variant === "tile" ? "text-lg" : "text-base")}>
+          {title}
+        </span>
+        <span className={cn("text-xs leading-relaxed", primary ? "text-white/85" : "text-cc-text-secondary")}>
+          {description}
+        </span>
+      </div>
+      {badge && (
+        <span className="ml-auto shrink-0 rounded-full border border-cc-accent-gold/30 bg-cc-accent-gold/10 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-cc-accent-gold">
+          {badge}
+        </span>
+      )}
+    </Card>
+  );
+
+  if (href) {
+    return (
+      <Link href={href} className="block no-underline h-full">
+        {content}
+      </Link>
+    );
+  }
+
+  return (
+    <button type="button" onClick={onClick} className="block w-full text-left cursor-pointer h-full">
+      {content}
+    </button>
   );
 }
