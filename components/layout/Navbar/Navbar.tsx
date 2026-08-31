@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
-import { Home, Zap, Puzzle, Trophy, BookOpen, GraduationCap, Users, Package, Store, Coins, Sparkles } from "lucide-react";
+import { Home, Zap, Puzzle, Trophy, BookOpen, GraduationCap, Users, Package, Store, Coins, Sparkles, Menu, X } from "lucide-react";
 import { useSocialStore } from "@/features/social/store/socialStore";
 import { InventoryModal } from "@/features/inventory/components";
 import { ShopModal } from "@/features/shop/components/ShopModal/ShopModal";
@@ -36,6 +36,7 @@ export default function Navbar() {
   const [isInventoryOpen, setIsInventoryOpen] = useState(false);
   const [isShopOpen, setIsShopOpen] = useState(false);
   const [wallet, setWallet] = useState<{ gold: number; aetherium: number } | null>(null);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const linksContainerRef = useRef<HTMLDivElement>(null);
   const linkRefs = useRef<Record<string, HTMLButtonElement | null>>({});
@@ -51,6 +52,11 @@ export default function Navbar() {
   useEffect(() => {
     refreshWallet();
   }, [refreshWallet]);
+
+  // Close the mobile drawer on every navigation.
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
 
   const activeHref = NAV_LINKS.find((link) => isExactActiveLink(pathname, link.href))?.href;
 
@@ -99,7 +105,7 @@ export default function Navbar() {
           </span>
         </button>
 
-        <div ref={linksContainerRef} className="relative flex items-center gap-1">
+        <div ref={linksContainerRef} className="relative hidden md:flex items-center gap-1">
           <span
             ref={indicatorRef}
             className="absolute left-0 top-0 h-full rounded-md bg-[var(--cc-bg-hover)] opacity-0"
@@ -121,14 +127,24 @@ export default function Navbar() {
                 id={`navbar-link-${label.toLowerCase()}`}
               >
                 <Icon size={16} />
-                <span className="hidden md:inline">{label}</span>
+                <span className="hidden lg:inline">{label}</span>
               </button>
             );
           })}
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <button
+        onClick={() => setIsMobileMenuOpen((prev) => !prev)}
+        className="md:hidden p-2 rounded-md transition-colors text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)]"
+        aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
+        aria-expanded={isMobileMenuOpen}
+        id="navbar-mobile-toggle"
+      >
+        {isMobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+      </button>
+
+      <div className="hidden md:flex items-center gap-3">
         {isPending ? (
           <div className="h-8 w-20 rounded animate-pulse bg-[var(--cc-bg-input)]" />
         ) : session ? (
@@ -214,6 +230,118 @@ export default function Navbar() {
           </div>
         )}
       </div>
+
+      {isMobileMenuOpen && (
+        <>
+          <div
+            className="md:hidden fixed inset-x-0 top-14 bottom-0 z-40 bg-black/50"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <div className="md:hidden absolute top-full left-0 right-0 z-40 flex flex-col gap-1 p-3 border-b shadow-xl bg-[var(--cc-bg-card)] border-[var(--cc-border)]">
+            {NAV_LINKS.map(({ href, label, Icon }) => {
+              const active = isExactActiveLink(pathname, href);
+              return (
+                <button
+                  key={href}
+                  onClick={() => router.push(href)}
+                  className={`w-full px-3 py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer flex items-center gap-3 ${
+                    active
+                      ? "text-[var(--cc-green)] bg-[var(--cc-bg-hover)]"
+                      : "text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)]"
+                  }`}
+                  id={`navbar-mobile-link-${label.toLowerCase()}`}
+                >
+                  <Icon size={18} />
+                  {label}
+                </button>
+              );
+            })}
+
+            <div className="my-2 border-t border-[var(--cc-border)]" />
+
+            {isPending ? (
+              <div className="h-9 w-full rounded animate-pulse bg-[var(--cc-bg-input)]" />
+            ) : session ? (
+              <>
+                {wallet && (
+                  <div className="flex items-center gap-4 px-3 py-2 text-sm font-mono text-[var(--cc-text-secondary)]">
+                    <span className="flex items-center gap-1.5">
+                      <Coins size={14} className="text-amber-500" /> {wallet.gold.toLocaleString()}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-purple-400" /> {wallet.aetherium.toLocaleString()}
+                    </span>
+                  </div>
+                )}
+                <button
+                  onClick={toggleSidebar}
+                  className="w-full px-3 py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer flex items-center gap-3 text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)]"
+                >
+                  <Users size={18} /> Friends
+                </button>
+                <button
+                  onClick={() => setIsShopOpen(true)}
+                  className="w-full px-3 py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer flex items-center gap-3 text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)]"
+                >
+                  <Store size={18} /> Shop
+                </button>
+                <button
+                  onClick={() => setIsInventoryOpen(true)}
+                  className="w-full px-3 py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer flex items-center gap-3 text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)]"
+                >
+                  <Package size={18} /> Inventory
+                </button>
+                <button
+                  onClick={() => router.push("/profile")}
+                  className="w-full px-3 py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer flex items-center gap-3 text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)]"
+                  id="navbar-mobile-profile"
+                >
+                  {session.user.image ? (
+                    <img
+                      src={session.user.image}
+                      alt={session.user.name || "User"}
+                      className="w-6 h-6 rounded-full border border-[var(--cc-border-light)]"
+                    />
+                  ) : (
+                    <div className="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold bg-[var(--cc-green)] text-white">
+                      {(session.user.name || "U")[0].toUpperCase()}
+                    </div>
+                  )}
+                  {session.user.name}
+                </button>
+                <button
+                  onClick={async () => {
+                    await authClient.signOut();
+                    router.refresh();
+                  }}
+                  className="w-full px-3 py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer flex items-center gap-3 text-[var(--cc-text-secondary)] hover:text-[var(--cc-text-primary)] hover:bg-[var(--cc-bg-hover)]"
+                  id="navbar-mobile-logout"
+                >
+                  Log Out
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col gap-2 px-1">
+                <button
+                  onClick={() => router.push("/login")}
+                  className="w-full py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer bg-transparent border border-[var(--cc-border)] hover:bg-[var(--cc-bg-hover)] text-[var(--cc-text-secondary)]"
+                  id="navbar-mobile-login"
+                >
+                  Log In
+                </button>
+                <button
+                  onClick={() => router.push("/signup")}
+                  className="w-full py-2.5 rounded-md text-sm font-semibold transition-colors cursor-pointer bg-[var(--cc-green)] hover:bg-[var(--cc-green-hover)] text-white"
+                  id="navbar-mobile-signup"
+                >
+                  Sign Up
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
 
       {isInventoryOpen && (
         <InventoryModal onClose={() => { setIsInventoryOpen(false); refreshWallet(); }} />
