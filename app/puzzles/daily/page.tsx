@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { usePuzzlesStore } from "../../../features/puzzles/store/puzzlesStore";
 import { PuzzleSolver } from "../../../features/puzzles/components/PuzzleSolver";
-import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function DailyPuzzlePage() {
   const { 
@@ -36,23 +36,12 @@ export default function DailyPuzzlePage() {
   };
 
   if (isLoading && !currentDailyPuzzle) {
-    return (
-      <div className="flex-1 flex justify-center items-center h-[calc(100vh-80px)]">
-        <Loader2 className="w-10 h-10 animate-spin text-cc-green" />
-      </div>
-    );
+    return <LoadingState variant="fill" label="Loading today's puzzle…" />;
   }
 
   return (
     <div className="flex-1 flex flex-col items-center py-8 px-4 h-full overflow-y-auto">
-      <div className="flex justify-between w-full max-w-[1100px] mb-8">
-        <Link href="/puzzles" className="text-zinc-400 hover:text-white transition-colors">
-          ← Back to Puzzles
-        </Link>
-        <div className="text-xl font-bold font-serif text-white">
-          Daily Puzzle
-        </div>
-      </div>
+      <PageHeader title="Daily Puzzle" backHref="/puzzles" />
 
       {currentDailyPuzzle ? (
         <div className="w-full max-w-[1100px] flex flex-col gap-10">

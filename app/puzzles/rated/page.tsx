@@ -3,8 +3,8 @@
 import { useEffect, useRef } from "react";
 import { usePuzzlesStore } from "../../../features/puzzles/store/puzzlesStore";
 import { PuzzleSolver } from "../../../features/puzzles/components/PuzzleSolver";
-import Link from "next/link";
-import { Loader2 } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 export default function RatedPuzzlesPage() {
   const { currentRatedPuzzle, fetchRatedPuzzle, submitAttempt, isLoading, ratedPuzzleRatingChange } = usePuzzlesStore();
@@ -36,23 +36,12 @@ export default function RatedPuzzlesPage() {
   };
 
   if (isLoading && !currentRatedPuzzle) {
-    return (
-      <div className="flex-1 flex justify-center items-center h-[calc(100vh-80px)]">
-        <Loader2 className="w-10 h-10 animate-spin text-cc-green" />
-      </div>
-    );
+    return <LoadingState variant="fill" label="Loading rated puzzle…" />;
   }
 
   return (
     <div className="flex-1 flex flex-col items-center justify-center py-8">
-      <div className="flex justify-between w-full max-w-[1100px] mb-4 px-4">
-        <Link href="/puzzles" className="text-zinc-400 hover:text-white transition-colors">
-          &larr; Back to Puzzles
-        </Link>
-        <div className="text-xl font-bold font-serif text-white">
-          Rated Training
-        </div>
-      </div>
+      <PageHeader title="Rated Training" backHref="/puzzles" />
 
       <div className="w-full max-w-[1100px] px-4">
         {ratedPuzzleRatingChange !== null && (
