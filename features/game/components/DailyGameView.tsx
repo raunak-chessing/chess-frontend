@@ -1,10 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { gameApi, DailyGame } from "../api/gameApi";
-import { useGameState } from "../hooks/useGameState";
-import { useRef } from "react";
+import { useDailyGame } from "../hooks/useDailyGame";
 import { Board } from "./Board";
 import { CapturedPieces } from "./CapturedPieces";
 import { GameStatusBar } from "./GameStatusBar";
@@ -12,8 +9,7 @@ import { GameControls } from "./GameControls";
 import MoveHistory from "./MoveHistory/MoveHistory";
 import { PromotionPicker } from "./PromotionPicker";
 import { authClient } from "@/lib/auth-client";
-import { Spinner } from "@/components/ui/Spinner";
-import { toast } from "react-hot-toast";
+import { LoadingState } from "@/components/ui/LoadingState";
 
 interface DailyGameViewProps {
   gameId: string;
@@ -24,126 +20,28 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
   const { data: session } = authClient.useSession();
   const userId = session?.user?.id;
 
-  const gameState = useGameState();
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [gameData, setGameData] = useState<DailyGame | null>(null);
+  const { gameState, loading, error, gameData, handlePieceDrop, resolveDailyPromotion, handleSquareClick } =
+    useDailyGame(gameId, userId);
 
-  const setFenRef = useRef(gameState.setFen);
-  useEffect(() => {
-    setFenRef.current = gameState.setFen;
-  }, [gameState.setFen]);
-
-  const fetchGame = useCallback(async () => {
-    try {
-      const data = await gameApi.getDailyGame(gameId);
-      setGameData(data);
-      // We don't overwrite if the user just moved locally unless we want to reset.
-      // But for initial load:
-      setFenRef.current(data.fen);
-      setLoading(false);
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : String(err));
-      setLoading(false);
-    }
-  }, [gameId]);
-
-  useEffect(() => {
-    fetchGame();
-    // No polling, it's daily! But we can poll every 60s if we want.
-    const interval = setInterval(fetchGame, 60000);
-    return () => clearInterval(interval);
-  }, [fetchGame]);
-
-  const handlePieceDrop = useCallback(
-    (source: string, target: string): boolean => {
-      if (!gameData || !userId) return false;
-      const isWhite = gameData.whitePlayerId === userId;
-      const isWhiteTurn = gameState.game.turn() === "w";
-      
-      if ((isWhite && !isWhiteTurn) || (!isWhite && isWhiteTurn)) {
-        return false; // Not your turn
-      }
-
-      // DailyGames can use PromotionPicker if we wire it up, but since it's custom logic:
-      try {
-        const moves = gameState.game.moves({ verbose: true });
-        const isPromotion = moves.some((m: any) => m.from === source && m.to === target && m.promotion);
-        
-        if (isPromotion) {
-          gameState.setPendingPromotion({ from: source, to: target });
-          return false;
-        }
-
-        const move = gameState.game.move({ from: source, to: target });
-        if (!move) return false;
-
-        const nextFen = gameState.game.fen();
-        gameState.setFen(nextFen);
-        
-        // Post move to backend
-        gameApi.makeDailyMove(gameId, source, target)
-          .then(() => fetchGame())
-          .catch(() => {
-            gameState.applyUndo();
-            toast.error("Move rejected by server. Your move has been reverted.");
-          });
-        
-        return true;
-      } catch {
-        return false;
-      }
-    },
-    [gameState, gameData, userId, gameId, fetchGame]
-  );
-
-  const resolveDailyPromotion = useCallback((piece: "q" | "r" | "b" | "n") => {
-    if (!gameState.pendingPromotion) return;
-    const { from, to } = gameState.pendingPromotion;
-
-    try {
-      const move = gameState.game.move({ from, to, promotion: piece });
-      if (move) {
-        const nextFen = gameState.game.fen();
-        gameState.setFen(nextFen);
-        
-        gameApi.makeDailyMove(gameId, from, to)
-          .then(() => fetchGame())
-          .catch(() => {
-            gameState.applyUndo();
-            toast.error("Move rejected by server. Your move has been reverted.");
-          });
-      }
-    } catch {
-      // Ignore invalid moves
-    }
-    gameState.setPendingPromotion(null);
-  }, [gameState, gameId, fetchGame]);
-
-  const handleSquareClick = useCallback(
-    (square: string) => {
-      gameState.handleSquareClick(
-        square,
-        "pvp", // Hack to reuse local logic but override drop
-        "",
-        null,
-        null
-      );
-    },
-    [gameState]
-  );
-
-  if (loading) return <main className="min-h-screen bg-cc-bg-page flex items-center justify-center p-6"><Spinner /></main>;
-  if (error || !gameData) return <main className="min-h-screen bg-cc-bg-page flex items-center justify-center p-6 text-red-500">{error}</main>;
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-cc-bg-page flex items-center justify-center p-6">
+        <LoadingState label="Loading daily game…" />
+      </main>
+    );
+  }
+  if (error || !gameData) {
+    return (
+      <main className="min-h-screen bg-cc-bg-page flex items-center justify-center p-6 text-red-500">{error}</main>
+    );
+  }
 
   const isFlipped = gameData.blackPlayerId === userId;
-  const selfPlayer = isFlipped ? gameData.blackPlayer : gameData.whitePlayer;
-  const oppPlayer = isFlipped ? gameData.whitePlayer : gameData.blackPlayer;
 
   return (
     <main className="min-h-screen bg-cc-bg-sidebar py-8 px-4 flex flex-col items-center justify-center relative overflow-hidden text-cc-text-primary font-sans">
       <div className="grid-background"></div>
-      
+
       <div className="w-full max-w-7xl flex flex-col xl:flex-row gap-6 relative z-10 items-center xl:items-start justify-center mt-6">
         {/* Left Side: Game Status & Controls */}
         <div className="w-full xl:w-72 flex flex-col gap-4">
@@ -187,7 +85,7 @@ export default function DailyGameView({ gameId }: DailyGameViewProps) {
         {/* Center: The Board */}
         <div className="w-full max-w-[min(65vh,100vw-32px)] xl:max-w-[70vh] flex flex-col items-center gap-3 relative select-none">
           <CapturedPieces pieces={gameState.capturedWhite} colorClass="text-zinc-100" />
-          
+
           <div className="w-full relative shadow-2xl rounded-sm">
             <Board
               position={gameState.fen}
