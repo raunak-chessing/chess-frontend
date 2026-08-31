@@ -5,6 +5,7 @@ import { Board } from '@/features/game/components/Board';
 import { Chess } from 'chess.js';
 import toast from 'react-hot-toast';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 export default function BossFightPage() {
   const [bossState, setBossState] = useState<BossFightState['state'] | null>(null);
@@ -47,7 +48,7 @@ export default function BossFightPage() {
     return false; // don't update local board state
   }, [bossState, votedMove]);
 
-  if (!bossState) return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  if (!bossState) return <LoadingState variant="fill" label="Loading Boss Fight…" />;
 
   return (
     <div className="flex flex-col h-full bg-slate-950">

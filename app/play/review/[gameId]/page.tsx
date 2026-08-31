@@ -7,6 +7,7 @@ import AIVoiceCoach from '@/features/analysis/components/AIVoiceCoach';
 import { CoachScriptLine } from '@/features/analysis/services/AudioProvider';
 import { fetchApi } from '@/lib/api-client';
 import { z } from 'zod';
+import { LoadingState } from '@/components/ui/LoadingState';
 
 const CoachResponseSchema = z.object({
   script: z.array(z.object({
@@ -52,7 +53,7 @@ export default function AIReviewPage() {
   if (loading) {
     return (
       <div className="min-h-screen bg-cc-bg flex items-center justify-center">
-        <div className="text-white font-bold animate-pulse text-xl">Loading AI Grandmaster Analysis...</div>
+        <LoadingState label="Loading AI grandmaster analysis…" />
       </div>
     );
   }
