@@ -28,6 +28,7 @@ import { formatTime } from "../../../../lib/utils";
 import { useVoiceControl } from "../../hooks/useVoiceControl";
 import { useVoiceAnnouncer } from "../../hooks/useVoiceAnnouncer";
 import { useServerClock } from "../../hooks/useServerClock";
+import { useLocalGameClock } from "../../hooks/useLocalGameClock";
 import { useOpeningName } from "../../hooks/useOpeningName";
 import { usePremoveExecution } from "../../hooks/usePremoveExecution";
 import { deriveGameResult, getOverlayConfig } from "../../utils/deriveGameResult";
@@ -52,9 +53,6 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
   const router = useRouter();
   const autoJoinAttempted = useRef(false);
 
-  const [whiteTime, setWhiteTime] = useState(600);
-  const [blackTime, setBlackTime] = useState(600);
-
   // Setup lobby states
   const [isSetupComplete, setIsSetupComplete] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -68,16 +66,14 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
 
   const activeBot = useMemo(() => COMPUTER_OPPONENTS.find((b) => b.id === botDifficulty), [botDifficulty]);
 
-  const handleResetTimers = useCallback(() => {
-    if (localTimeControl === "unlimited") {
-      setWhiteTime(999999);
-      setBlackTime(999999);
-    } else {
-      const mins = parseInt(localTimeControl.split("|")[0]) || 10;
-      setWhiteTime(mins * 60);
-      setBlackTime(mins * 60);
-    }
-  }, [localTimeControl]);
+  const { whiteTime, blackTime, resetTimers: handleResetTimers } = useLocalGameClock(
+    gameState.game,
+    gameState.fen,
+    gameMode,
+    localResult,
+    (result) => setLocalResult(result),
+    localTimeControl,
+  );
 
   const socketHandlers = useMemo(
     () => ({
@@ -214,39 +210,6 @@ function GameViewInner({ initialMode, onReturnHome }: GameViewProps) {
       return () => clearTimeout(timer);
     }
   }, [derivedResult]);
-
-  useEffect(() => {
-    let interval: NodeJS.Timeout | null = null;
-    const isGameOver = gameState.game.isGameOver() || localResult !== null;
-    const hasHistory = gameState.game.history().length > 0;
-
-    if (hasHistory && !isGameOver && gameMode !== "online") {
-      interval = setInterval(() => {
-        const turn = gameState.game.turn();
-        if (turn === "w") {
-          setWhiteTime((prev) => {
-            if (prev <= 1) {
-              setLocalResult("lost");
-              return 0;
-            }
-            return prev - 1;
-          });
-        } else {
-          setBlackTime((prev) => {
-            if (prev <= 1) {
-              setLocalResult("won");
-              return 0;
-            }
-            return prev - 1;
-          });
-        }
-      }, 1000);
-    }
-
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [gameState.fen, gameState.game, gameMode, socketState.playerColor, localResult]);
 
   const handleServerTimeout = useCallback(() => {
     socketState.handleClaimTimeout();
