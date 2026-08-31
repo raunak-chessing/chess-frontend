@@ -20,6 +20,9 @@ importers:
       '@hookform/resolvers':
         specifier: ^5.4.0
         version: 5.4.0(react-hook-form@7.81.0(react@19.2.4))
+      '@phosphor-icons/react':
+        specifier: ^2.1.10
+        version: 2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)
       '@react-three/drei':
         specifier: ^10.7.7
         version: 10.7.7(@react-three/fiber@9.6.1(@types/react@19.2.17)(immer@11.1.11)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.185.1))(@types/react@19.2.17)(@types/three@0.185.1)(immer@11.1.11)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.185.1)
@@ -825,6 +828,13 @@ packages:
   '@opentelemetry/semantic-conventions@1.42.0':
     resolution: {integrity: sha512-icc5xCzndZfhuJMy5oqk5AvloWquR7jtae74qzpkKkhGp8BivK+oCcEXgGnjCdTfp8hA44l+w8gE8yYJbocJJw==}
     engines: {node: '>=14'}
+
+  '@phosphor-icons/react@2.1.10':
+    resolution: {integrity: sha512-vt8Tvq8GLjheAZZYa+YG/pW7HDbov8El/MANW8pOAz4eGxrwhnbfrQZq0Cp4q8zBEu8NIhHdnr+r8thnfRSNYA==}
+    engines: {node: '>=10'}
+    peerDependencies:
+      react: '>= 16.8'
+      react-dom: '>= 16.8'
 
   '@react-three/drei@10.7.7':
     resolution: {integrity: sha512-ff+J5iloR0k4tC++QtD/j9u3w5fzfgFAWDtAGQah9pF2B1YgOq/5JxqY0/aVoQG5r3xSZz0cv5tk2YuBob4xEQ==}
@@ -5003,6 +5013,11 @@ snapshots:
       '@opentelemetry/semantic-conventions': 1.42.0
 
   '@opentelemetry/semantic-conventions@1.42.0': {}
+
+  '@phosphor-icons/react@2.1.10(react-dom@19.2.4(react@19.2.4))(react@19.2.4)':
+    dependencies:
+      react: 19.2.4
+      react-dom: 19.2.4(react@19.2.4)
 
   '@react-three/drei@10.7.7(@react-three/fiber@9.6.1(@types/react@19.2.17)(immer@11.1.11)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.185.1))(@types/react@19.2.17)(@types/three@0.185.1)(immer@11.1.11)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(three@0.185.1)':
     dependencies:

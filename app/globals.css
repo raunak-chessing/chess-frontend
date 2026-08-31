@@ -5,23 +5,35 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --cc-bg-page: #312e2b;
-  --cc-bg-card: #272522;
-  --cc-bg-sidebar: #1e1c1a;
-  --cc-bg-input: #3d3a37;
-  --cc-bg-hover: #3a3733;
-  --cc-green: #81b64c;
-  --cc-green-hover: #6fa33f;
-  --cc-green-dark: #5a9132;
-  --cc-green-rgb: 129 182 76;
-  --cc-text-primary: #e8e6e3;
-  --cc-text-secondary: #a09e9b;
-  --cc-text-muted: #6b6966;
-  --cc-border: #3d3a37;
-  --cc-border-light: #4d4a47;
-  --cc-accent-gold: #e8a93e;
-  --cc-accent-red: #c33;
-  --cc-accent-blue: #5ba4cf;
+  /*
+   * "Editorial Luxury" palette — warm cream/espresso surfaces with a sage
+   * accent (a muted, direct descendant of the original #81b64c chess-green)
+   * and a brass gold (descendant of the original #e8a93e). Token *names*
+   * are unchanged from the previous dark theme on purpose: every component
+   * already styles itself against bg-cc-green, text-cc-text-primary,
+   * bg-primary, etc. rather than raw hex, so this block is the entire
+   * re-theme for the vast majority of the app.
+   */
+  --cc-bg-page: #fbf7f0;
+  --cc-bg-card: #ffffff;
+  --cc-bg-sidebar: #f3ede2;
+  --cc-bg-input: #f5f0e8;
+  --cc-bg-hover: #ede6d8;
+  --cc-green: #5d7052;
+  --cc-green-hover: #4d5d44;
+  --cc-green-dark: #3f4c38;
+  --cc-green-rgb: 93 112 82;
+  --cc-text-primary: #2b2420;
+  --cc-text-secondary: #6b5f52;
+  --cc-text-muted: #7d7060;
+  --cc-border: #e4dbc9;
+  --cc-border-light: #d4c8b0;
+  --cc-accent-gold: #96692a;
+  --cc-accent-red: #a8452f;
+  --cc-accent-blue: #4a6b7a;
+
+  /* Shared spring-style easing for motion, in place of default/linear. */
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
 
   --board-edge-color: #18120e;
   --board-transition-speed: 0.4s;
@@ -42,7 +54,7 @@
   --popover: var(--cc-bg-card);
   --popover-foreground: var(--cc-text-primary);
   --primary: var(--cc-green);
-  --primary-foreground: #ffffff;
+  --primary-foreground: #f7f4ee;
   --primary-hover: var(--cc-green-hover);
   --secondary: var(--cc-bg-input);
   --secondary-foreground: var(--cc-text-primary);
@@ -54,16 +66,16 @@
   --border: var(--cc-border);
   --input: var(--cc-border);
   --ring: var(--cc-green);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.55 0.08 145);
+  --chart-2: oklch(0.65 0.09 75);
+  --chart-3: oklch(0.5 0.06 200);
+  --chart-4: oklch(0.45 0.09 30);
+  --chart-5: oklch(0.35 0.02 60);
   --radius: 0.625rem;
   --sidebar: var(--cc-bg-sidebar);
   --sidebar-foreground: var(--cc-text-primary);
   --sidebar-primary: var(--cc-green);
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #f7f4ee;
   --sidebar-accent: var(--cc-bg-hover);
   --sidebar-accent-foreground: var(--cc-text-primary);
   --sidebar-border: var(--cc-border);
@@ -337,10 +349,11 @@ input:-webkit-autofill:active {
 }
 
 /*
- * This app has one fixed dark theme, not a light/dark toggle, so .dark
- * intentionally mirrors :root exactly — if a .dark class is ever applied
- * (e.g. by a shadcn/react-bits component that expects one to exist), nothing
- * changes, since the app is already themed dark by default.
+ * This app has one fixed theme (currently the warm "Editorial Luxury"
+ * palette above), not a light/dark toggle, so .dark intentionally mirrors
+ * :root exactly — if a .dark class is ever applied (e.g. by a shadcn/
+ * react-bits component that expects one to exist), nothing changes, since
+ * the app is already themed by default.
  */
 .dark {
   --background: var(--cc-bg-page);
@@ -350,7 +363,7 @@ input:-webkit-autofill:active {
   --popover: var(--cc-bg-card);
   --popover-foreground: var(--cc-text-primary);
   --primary: var(--cc-green);
-  --primary-foreground: #ffffff;
+  --primary-foreground: #f7f4ee;
   --primary-hover: var(--cc-green-hover);
   --secondary: var(--cc-bg-input);
   --secondary-foreground: var(--cc-text-primary);
@@ -362,15 +375,15 @@ input:-webkit-autofill:active {
   --border: var(--cc-border);
   --input: var(--cc-border);
   --ring: var(--cc-green);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
+  --chart-1: oklch(0.55 0.08 145);
+  --chart-2: oklch(0.65 0.09 75);
+  --chart-3: oklch(0.5 0.06 200);
+  --chart-4: oklch(0.45 0.09 30);
+  --chart-5: oklch(0.35 0.02 60);
   --sidebar: var(--cc-bg-sidebar);
   --sidebar-foreground: var(--cc-text-primary);
   --sidebar-primary: var(--cc-green);
-  --sidebar-primary-foreground: #ffffff;
+  --sidebar-primary-foreground: #f7f4ee;
   --sidebar-accent: var(--cc-bg-hover);
   --sidebar-accent-foreground: var(--cc-text-primary);
   --sidebar-border: var(--cc-border);
